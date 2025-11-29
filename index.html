@@ -20,7 +20,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -305,9 +305,15 @@
             font-size: 1.1em;
         }
 
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
         .results {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: 1fr;
             gap: 20px;
         }
 
@@ -322,6 +328,21 @@
         .faculty-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .faculty-card.highlighted {
+            border: 3px solid #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            }
+            50% {
+                box-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
+            }
         }
 
         .faculty-name {
@@ -363,6 +384,134 @@
             border-radius: 25px;
             font-weight: 600;
             margin-top: 10px;
+        }
+
+        .map-section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .map-controls select {
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .floor-map {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 500px;
+            position: relative;
+        }
+
+        .floor-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .cabin-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .cabin {
+            background: white;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .cabin:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .cabin.occupied {
+            background: #e8ebff;
+            border-color: #667eea;
+        }
+
+        .cabin.vacant {
+            background: #f5f5f5;
+            border-color: #ccc;
+            opacity: 0.5;
+        }
+
+        .cabin.highlighted {
+            background: #fef3c7;
+            border: 3px solid #fbbf24;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        .cabin-number {
+            font-weight: 700;
+            font-size: 1.2em;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .cabin-faculty {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .cabin-dept {
+            font-size: 0.8em;
+            color: #999;
+            margin-top: 5px;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-box.occupied {
+            background: #e8ebff;
+            border: 2px solid #667eea;
+        }
+
+        .legend-box.vacant {
+            background: #f5f5f5;
+            border: 2px solid #ccc;
+        }
+
+        .legend-box.highlighted {
+            background: #fef3c7;
+            border: 2px solid #fbbf24;
         }
 
         .no-results {
@@ -421,6 +570,16 @@
             color: #856404;
         }
 
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+
+            .cabin-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 1.8em;
@@ -437,8 +596,8 @@
                 flex-direction: column;
             }
 
-            .results {
-                grid-template-columns: 1fr;
+            .cabin-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
 
             .modal-buttons {
@@ -454,7 +613,7 @@
                 🔐 Admin Login
             </button>
             <h1>🎓 Faculty Finder</h1>
-            <p class="subtitle">Find your teacher's cabin, contact details in seconds</p>
+            <p class="subtitle">Find your teacher's cabin with interactive floor maps</p>
         </header>
 
         <!-- Admin Login Modal -->
@@ -522,7 +681,7 @@
                         <option value="all">All Departments</option>
                     </select>
                 </div>
-                
+
                 <div class="filter-group">
                     <label for="floorFilter">Floor</label>
                     <select id="floorFilter">
@@ -532,7 +691,49 @@
             </div>
         </div>
 
-        <div class="results" id="results"></div>
+        <div class="main-content">
+            <div>
+                <div class="results" id="results"></div>
+            </div>
+
+            <div class="map-section">
+                <h2 style="color: #667eea; margin-bottom: 20px;">🗺️ Interactive Floor Map</h2>
+                <div class="map-controls">
+                    <select id="mapBuildingFilter" onchange="updateMap()">
+                        <option value="">Select Building</option>
+                        <option value="ABB1">ABB1</option>
+                        <option value="ABB2">ABB2</option>
+                        <option value="ABB3">ABB3</option>
+                    </select>
+                    <select id="mapFloorFilter" onchange="updateMap()">
+                        <option value="">Select Floor</option>
+                        <option value="1">Floor 1</option>
+                        <option value="2">Floor 2</option>
+                        <option value="3">Floor 3</option>
+                        <option value="4">Floor 4</option>
+                    </select>
+                </div>
+                <div class="floor-map" id="floorMap">
+                    <div style="text-align: center; color: #999; padding: 50px;">
+                        Select a building and floor to view the map
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-box occupied"></div>
+                        <span>Occupied</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box vacant"></div>
+                        <span>Vacant</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-box highlighted"></div>
+                        <span>Selected</span>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -540,8 +741,9 @@
         const ADMIN_PASSWORD = "admin123";
         
         let isAdminLoggedIn = false;
+        let selectedFaculty = null;
 
-        let facultyData = [
+               let facultyData = [
             {
                 name: "Gaurav Verma",
                 building: "ABB1",
@@ -1341,13 +1543,51 @@
             }
         ];
 
-        
         const searchBar = document.getElementById('searchBar');
         const buildingFilter = document.getElementById('buildingFilter');
         const departmentFilter = document.getElementById('departmentFilter');
         const resultsContainer = document.getElementById('results');
         const uploadArea = document.getElementById('uploadArea');
         const fileInput = document.getElementById('fileInput');
+
+        // Admin Login Functions
+        function toggleAdminModal() {
+            const modal = document.getElementById('loginModal');
+            if (isAdminLoggedIn) {
+                return;
+            }
+            modal.classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('loginModal').classList.remove('active');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        }
+
+        function adminLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+                isAdminLoggedIn = true;
+                document.getElementById('uploadSection').classList.add('visible');
+                document.getElementById('adminBtn').textContent = '✓ Admin Logged In';
+                document.getElementById('adminBtn').classList.add('logged-in');
+                closeModal();
+                showMessage('Successfully logged in as Admin!', 'success');
+            } else {
+                showMessage('Invalid username or password!', 'error');
+            }
+        }
+
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            document.getElementById('uploadSection').classList.remove('visible');
+            document.getElementById('adminBtn').textContent = '🔐 Admin Login';
+            document.getElementById('adminBtn').classList.remove('logged-in');
+            showMessage('Logged out successfully!', 'success');
+        }
 
         // Upload functionality
         uploadArea.addEventListener('click', () => fileInput.click());
@@ -1372,43 +1612,6 @@
             const file = e.target.files[0];
             if (file) handleFile(file);
         });
-
-        function toggleAdminModal() {
-            if (isAdminLoggedIn) {
-                return;
-            }
-            document.getElementById('loginModal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('loginModal').classList.remove('active');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        function adminLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                isAdminLoggedIn = true;
-                document.getElementById('uploadSection').classList.add('visible');
-                document.getElementById('adminBtn').textContent = '✅ Admin Mode';
-                document.getElementById('adminBtn').classList.add('logged-in');
-                closeModal();
-                showMessage('Admin login successful!', 'success');
-            } else {
-                showMessage('Invalid username or password!', 'error');
-            }
-        }
-
-        function adminLogout() {
-            isAdminLoggedIn = false;
-            document.getElementById('uploadSection').classList.remove('visible');
-            document.getElementById('adminBtn').textContent = '🔐 Admin Login';
-            document.getElementById('adminBtn').classList.remove('logged-in');
-            showMessage('Logged out successfully', 'success');
-        }
 
         function handleFile(file) {
             const reader = new FileReader();
@@ -1451,9 +1654,9 @@
             facultyData = newFacultyData;
             updateFilters();
             displayFaculty(facultyData);
-            document.getElementById('stats').style.display = 'block';
             document.getElementById('totalCount').textContent = facultyData.length;
             showMessage(`Successfully loaded ${facultyData.length} faculty members!`, 'success');
+            updateMap();
         }
 
         function downloadTemplate() {
@@ -1508,8 +1711,7 @@
             });
 
             departmentFilter.innerHTML = '<option value="all">All Departments</option>';
-            departments.forEach(dept => {
-                const option = document.createElement('option');
+            departments.forEach(dept => {const option = document.createElement('option');
                 option.value = dept;
                 option.textContent = dept;
                 departmentFilter.appendChild(option);
@@ -1536,28 +1738,13 @@
             facultyList.forEach(faculty => {
                 const card = document.createElement('div');
                 card.className = 'faculty-card';
+                if (selectedFaculty && selectedFaculty.email === faculty.email) {
+                    card.classList.add('highlighted');
+                }
                 
                 let locationHTML = '';
                 if (faculty.building && faculty.cabin) {
-                    locationHTML = `<div class="location-badge">${faculty.building} - Cabin ${faculty.cabin}</div>`;
-                } else if (faculty.building) {
-                    locationHTML = `<div class="location-badge">${faculty.building}</div>`;
-                } else if (faculty.cabin) {
-                    locationHTML = `<div class="location-badge">Cabin ${faculty.cabin}</div>`;
-                }
-                
-                let cabinHTML = '';
-                if (faculty.cabin) {
-                    cabinHTML = `<div class="faculty-info">
-                        <strong>Cabin:</strong> ${faculty.cabin}
-                    </div>`;
-                }
-
-                let floorHTML = '';
-                if (faculty.floor) {
-                    floorHTML = `<div class="faculty-info">
-                        <strong>Floor:</strong> ${faculty.floor}
-                    </div>`;
+                    locationHTML = `<div class="location-badge">${faculty.building} - Floor ${faculty.floor} - Cabin ${faculty.cabin}</div>`;
                 }
                 
                 card.innerHTML = `
@@ -1565,25 +1752,42 @@
                     <div class="faculty-info">
                         <strong>Email:</strong> <a href="mailto:${faculty.email}" style="color: #667eea; text-decoration: none;">${faculty.email}</a>
                     </div>
-                    <div class="faculty-info">
+                    ${faculty.phone ? `<div class="faculty-info">
                         <strong>Phone:</strong> <a href="tel:+91${faculty.phone}" style="color: #667eea; text-decoration: none;">${faculty.phone}</a>
-                    </div>
-                    ${floorHTML}
-                    ${cabinHTML}
+                    </div>` : ''}
+                    ${faculty.floor ? `<div class="faculty-info">
+                        <strong>Floor:</strong> ${faculty.floor}
+                    </div>` : ''}
+                    ${faculty.cabin ? `<div class="faculty-info">
+                        <strong>Cabin:</strong> ${faculty.cabin}
+                    </div>` : ''}
                     <span class="department-tag">${faculty.department}</span>
                     ${locationHTML}
                 `;
+                card.onclick = () => highlightFaculty(faculty);
                 resultsContainer.appendChild(card);
             });
         }
 
-        function filterFaculty() {
+        function highlightFaculty(faculty) {
+            selectedFaculty = faculty;
+            displayFaculty(filterFacultyData());
+            
+            // Auto-navigate map to faculty location
+            if (faculty.building && faculty.floor) {
+                document.getElementById('mapBuildingFilter').value = faculty.building;
+                document.getElementById('mapFloorFilter').value = faculty.floor;
+                updateMap();
+            }
+        }
+
+        function filterFacultyData() {
             const searchTerm = searchBar.value.toLowerCase();
             const buildingValue = buildingFilter.value;
             const departmentValue = departmentFilter.value;
             const floorValue = document.getElementById('floorFilter').value;
 
-            const filtered = facultyData.filter(faculty => {
+            return facultyData.filter(faculty => {
                 const matchesSearch = faculty.name.toLowerCase().includes(searchTerm) ||
                                      faculty.email.toLowerCase().includes(searchTerm) ||
                                      faculty.phone.includes(searchTerm);
@@ -1593,8 +1797,66 @@
                 
                 return matchesSearch && matchesBuilding && matchesDepartment && matchesFloor;
             });
+        }
 
+        function filterFaculty() {
+            const filtered = filterFacultyData();
             displayFaculty(filtered);
+        }
+
+        // Floor Map Functions
+        function updateMap() {
+            const building = document.getElementById('mapBuildingFilter').value;
+            const floor = document.getElementById('mapFloorFilter').value;
+            const floorMapDiv = document.getElementById('floorMap');
+
+            if (!building || !floor) {
+                floorMapDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 50px;">Select a building and floor to view the map</div>';
+                return;
+            }
+
+            // Get all cabins for this building and floor
+            const cabinsOnFloor = facultyData.filter(f => f.building === building && f.floor === floor);
+            
+            // Generate cabin numbers for this floor (e.g., Floor 2 = 201-220)
+            const floorPrefix = floor;
+            const cabinNumbers = [];
+            for (let i = 1; i <= 20; i++) {
+                const cabinNum = floorPrefix + String(i).padStart(2, '0');
+                cabinNumbers.push(cabinNum);
+            }
+
+            let html = `<div class="floor-title">${building} - Floor ${floor}</div>`;
+            html += '<div class="cabin-grid">';
+
+            cabinNumbers.forEach(cabinNum => {
+                const faculty = cabinsOnFloor.find(f => f.cabin === cabinNum);
+                const isHighlighted = selectedFaculty && selectedFaculty.cabin === cabinNum;
+                
+                if (faculty) {
+                    html += `
+                        <div class="cabin occupied ${isHighlighted ? 'highlighted' : ''}" onclick='selectCabin(${JSON.stringify(faculty)})'>
+                            <div class="cabin-number">${cabinNum}</div>
+                            <div class="cabin-faculty">${faculty.name.split(' ').slice(-1)[0]}</div>
+                            <div class="cabin-dept">${faculty.department.substring(0, 15)}...</div>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="cabin vacant">
+                            <div class="cabin-number">${cabinNum}</div>
+                            <div class="cabin-faculty">Vacant</div>
+                        </div>
+                    `;
+                }
+            });
+
+            html += '</div>';
+            floorMapDiv.innerHTML = html;
+        }
+
+        function selectCabin(faculty) {
+            highlightFaculty(faculty);
         }
 
         searchBar.addEventListener('input', filterFaculty);
@@ -1602,14 +1864,7 @@
         departmentFilter.addEventListener('change', filterFaculty);
         document.getElementById('floorFilter').addEventListener('change', filterFaculty);
 
-        // Close modal when clicking outside
-        document.getElementById('loginModal').addEventListener('click', (e) => {
-            if (e.target.id === 'loginModal') {
-                closeModal();
-            }
-        });
-
-        // Handle Enter key in login form
+        // Handle Enter key on login form
         document.getElementById('password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 adminLogin();
@@ -1619,7 +1874,6 @@
         // Initialize
         updateFilters();
         displayFaculty(facultyData);
-        document.getElementById('stats').style.display = 'block';
         document.getElementById('totalCount').textContent = facultyData.length;
     </script>
 </body>
