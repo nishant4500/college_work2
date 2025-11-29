@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faculty Finder - Campus Directory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .subtitle {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        .search-bar:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .faculty-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .faculty-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .faculty-name {
+            font-size: 1.4em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .faculty-info {
+            margin-bottom: 10px;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+
+        .faculty-info strong {
+            min-width: 90px;
+            color: #333;
+        }
+
+        .department-tag {
+            display: inline-block;
+            padding: 6px 12px;
+            background: #f0f0f0;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .location-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 25px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: white;
+            font-size: 1.3em;
+            padding: 40px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.8em;
+            }
+
+            .filters {
+                flex-direction: column;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Faculty Finder</h1>
+            <p class="subtitle">Find your teacher's cabin, contact details in seconds</p>
+        </header>
+
+        <div class="search-section">
+            <input type="text" id="searchBar" class="search-bar" placeholder="Search by teacher name...">
+            
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="buildingFilter">Building</label>
+                    <select id="buildingFilter">
+                        <option value="all">All Buildings</option>
+                        <option value="ABB1">ABB1</option>
+                        <option value="ABB2">ABB2</option>
+                        <option value="ABB3">ABB3</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="departmentFilter">Department/Branch</label>
+                    <select id="departmentFilter">
+                        <option value="all">All Departments</option>
+                        <option value="Electronics and Communication Engineering">ECE</option>
+                        <option value="Computer Science">CS</option>
+                        <option value="Biotechnology">BT</option>
+                        <option value="Humanities">HSS</option>
+                        <option value="Physics">Physics</option>
+                        <option value="Mathematics">Maths</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const facultyData = [
+            {
+                name: "Dr. Rajesh Kumar",
+                building: "ABB1",
+                cabin: "101",
+                department: "CS",
+                email: "rajesh.kumar@college.edu",
+                phone: "+91 98765 43210"
+            },
+            {
+                name: "Prof. Anita Sharma",
+                building: "ABB1",
+                cabin: "205",
+                department: "ECE",
+                email: "anita.sharma@college.edu",
+                phone: "+91 98765 43211"
+            },
+            {
+                name: "Dr. Vikram Singh",
+                building: "ABB2",
+                cabin: "301",
+                department: "BT",
+                email: "vikram.singh@college.edu",
+                phone: "+91 98765 43212"
+            },
+            {
+                name: "Prof. Meera Patel",
+                building: "ABB2",
+                cabin: "115",
+                department: "Physics",
+                email: "meera.patel@college.edu",
+                phone: "+91 98765 43213"
+            },
+            {
+                name: "Dr. Suresh Reddy",
+                building: "ABB3",
+                cabin: "202",
+                department: "Maths",
+                email: "suresh.reddy@college.edu",
+                phone: "+91 98765 43214"
+            },
+            {
+                name: "Prof. Priya Verma",
+                building: "ABB3",
+                cabin: "310",
+                department: "HSS",
+                email: "priya.verma@college.edu",
+                phone: "+91 98765 43215"
+            },
+            {
+                name: "Dr. Amit Joshi",
+                building: "ABB1",
+                cabin: "150",
+                department: "CS",
+                email: "amit.joshi@college.edu",
+                phone: "+91 98765 43216"
+            },
+            {
+                name: "Prof. Neha Gupta",
+                building: "ABB2",
+                cabin: "225",
+                department: "ECE",
+                email: "neha.gupta@college.edu",
+                phone: "+91 98765 43217"
+            }
+        ];
+
+        const searchBar = document.getElementById('searchBar');
+        const buildingFilter = document.getElementById('buildingFilter');
+        const departmentFilter = document.getElementById('departmentFilter');
+        const resultsContainer = document.getElementById('results');
+
+        function displayFaculty(facultyList) {
+            resultsContainer.innerHTML = '';
+
+            if (facultyList.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No faculty members found. Try adjusting your filters.</div>';
+                return;
+            }
+
+            facultyList.forEach(faculty => {
+                const card = document.createElement('div');
+                card.className = 'faculty-card';
+                card.innerHTML = `
+                    <div class="faculty-name">${faculty.name}</div>
+                    <div class="faculty-info">
+                        <strong>Email:</strong> ${faculty.email}
+                    </div>
+                    <div class="faculty-info">
+                        <strong>Phone:</strong> ${faculty.phone}
+                    </div>
+                    <div class="faculty-info">
+                        <strong>Cabin:</strong> ${faculty.cabin}
+                    </div>
+                    <span class="department-tag">${faculty.department}</span>
+                    <div class="location-badge">${faculty.building} - Cabin ${faculty.cabin}</div>
+                `;
+                resultsContainer.appendChild(card);
+            });
+        }
+
+        function filterFaculty() {
+            const searchTerm = searchBar.value.toLowerCase();
+            const buildingValue = buildingFilter.value;
+            const departmentValue = departmentFilter.value;
+
+            const filtered = facultyData.filter(faculty => {
+                const matchesSearch = faculty.name.toLowerCase().includes(searchTerm);
+                const matchesBuilding = buildingValue === 'all' || faculty.building === buildingValue;
+                const matchesDepartment = departmentValue === 'all' || faculty.department === departmentValue;
+                
+                return matchesSearch && matchesBuilding && matchesDepartment;
+            });
+
+            displayFaculty(filtered);
+        }
+
+        searchBar.addEventListener('input', filterFaculty);
+        buildingFilter.addEventListener('change', filterFaculty);
+        departmentFilter.addEventListener('change', filterFaculty);
+
+        displayFaculty(facultyData);
+    </script>
+</body>
+</html>
