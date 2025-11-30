@@ -90,8 +90,10 @@
             padding: 40px;
             border-radius: 15px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 400px;
+            max-width: 500px;
             width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
             animation: slideIn 0.3s;
         }
 
@@ -166,6 +168,10 @@
 
         .btn-danger {
             background: #ef4444;
+        }
+
+        .btn-success {
+            background: #10b981;
         }
 
         .upload-section {
@@ -366,6 +372,99 @@
             flex-shrink: 0;
         }
 
+        .availability-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .availability-status.available {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .availability-status.busy {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .availability-status.away {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .status-dot.available {
+            background: #10b981;
+        }
+
+        .status-dot.busy {
+            background: #ef4444;
+        }
+
+        .status-dot.away {
+            background: #f59e0b;
+        }
+
+        .office-hours {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .office-hours strong {
+            color: #667eea;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .card-actions button {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-directions {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-directions:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .btn-appointment {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-appointment:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
         .department-tag {
             display: inline-block;
             padding: 6px 12px;
@@ -384,6 +483,39 @@
             border-radius: 25px;
             font-weight: 600;
             margin-top: 10px;
+        }
+
+        .directions-content {
+            margin-top: 20px;
+        }
+
+        .direction-step {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .step-number {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            color: #333;
+            line-height: 1.6;
         }
 
         .map-section {
@@ -600,7 +732,7 @@
                 grid-template-columns: repeat(2, 1fr);
             }
 
-            .modal-buttons {
+            .modal-buttons, .card-actions {
                 flex-direction: column;
             }
         }
@@ -635,6 +767,17 @@
             </div>
         </div>
 
+        <!-- Directions Modal -->
+        <div class="modal" id="directionsModal">
+            <div class="modal-content">
+                <div class="modal-header">🧭 Navigation Directions</div>
+                <div id="directionsContent" class="directions-content"></div>
+                <div class="modal-buttons">
+                    <button class="btn btn-secondary" onclick="closeDirectionsModal()">Close</button>
+                </div>
+            </div>
+        </div>
+
         <div id="messageContainer"></div>
 
         <!-- Upload Section (Only visible for admin) -->
@@ -655,8 +798,8 @@
             </div>
             <div class="template-info">
                 <strong>📋 Excel File Format:</strong>
-                Your Excel file should have these columns: <strong>Name, Building, Floor, Cabin, Department, Email, Phone</strong>
-                <br>Example: John Doe | ABB1 | 2 | 201 | Computer Science | john@jiit.ac.in | 9876543210
+                Your Excel file should have these columns: <strong>Name, Building, Floor, Cabin, Department, Email, Phone, Status, OfficeHours</strong>
+                <br>Example: John Doe | ABB1 | 2 | 201 | Computer Science | john@jiit.ac.in | 9876543210 | Available | Mon-Fri 10AM-4PM
             </div>
         </div>
 
@@ -743,803 +886,61 @@
         let isAdminLoggedIn = false;
         let selectedFaculty = null;
 
-               let facultyData = [
+        let facultyData = [
             {
-                name: "Gaurav Verma",
-                building: "ABB1",
-                cabin: "220",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "gaurav.verma@jiit.ac.in",
-                phone: "9811506739"
-            },
-            {
-                name: "Vishal Narain Saxena",
-                building: "ABB2",
-                cabin: "320",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "vishal.saxena@jiit.ac.in",
-                phone: "9818538867"
-            },
-            {
-                name: "Dharmendra Kumar Jhariya",
-                building: "ABB3",
-                cabin: "110",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "dharmendra.jhariya@jiit.ac.in",
-                phone: "9635550330"
-            },
-            {
-                name: "Archana Pandey",
-                building: "ABB1",
-                cabin: "325",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "archana.pandey@jiit.ac.in",
-                phone: "9958893317"
-            },
-            {
-                name: "Juhi Gupta",
-                building: "ABB2",
-                cabin: "225",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "juhi@jiit.ac.in",
-                phone: "9650052364"
-            },
-            {
-                name: "Kirmender Singh",
-                building: "ABB3",
-                cabin: "205",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "kirmender.singh@jiit.ac.in",
-                phone: "9717000615"
-            },
-            {
-                name: "Vivek Dwivedi",
-                building: "ABB1",
-                cabin: "415",
-                floor: "4",
-                department: "Electronics and Communication Engineering",
-                email: "vivek.dwivedi@jiit.ac.in",
-                phone: "7289900592"
-            },
-            {
-                name: "Neetu Joshi",
-                building: "ABB2",
-                cabin: "330",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "neetu.joshi@jiit.ac.in",
-                phone: "9675480315"
-            },
-            {
-                name: "Ekta Goel",
-                building: "ABB3",
-                cabin: "115",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "ekta.goel@jiit.ac.in",
-                phone: "8052696820"
-            },
-            {
-                name: "Ankur Bhardwaj",
-                building: "ABB1",
-                cabin: "230",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "ankur.bhardwaj@jiit.ac.in",
-                phone: "9871173145"
-            },
-            {
-                name: "Ruby Beniwal",
-                building: "ABB2",
-                cabin: "335",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "ruby.beniwal@jiit.ac.in",
-                phone: "9717874337"
-            },
-            {
-                name: "Shivaji Tyagi",
-                building: "ABB3",
-                cabin: "210",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "shivaji.tyagi@jiit.ac.in",
-                phone: "9811523664"
-            },
-            {
-                name: "Shradha Saxena",
-                building: "ABB1",
-                cabin: "330",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "shradha.saxena@jiit.ac.in",
-                phone: "9911373860"
-            },
-            {
-                name: "Nitesh Kumar",
-                building: "ABB2",
-                cabin: "120",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "nitesh.kumar@jiit.ac.in",
-                phone: "9911001239"
-            },
-            {
-                name: "Rachna Singh",
-                building: "ABB3",
-                cabin: "215",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "rachna.singh@jiit.ac.in",
-                phone: "8982865801"
-            },
-            {
-                name: "Chandan Kumar",
-                building: "ABB1",
-                cabin: "420",
-                floor: "4",
-                department: "Electronics and Communication Engineering",
-                email: "chandan.kumar1@jiit.ac.in",
-                phone: "9090308993"
-            },
-            {
-                name: "Vimal Saini",
-                building: "ABB2",
-                cabin: "340",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "vimal.saini@jiit.ac.in",
-                phone: "9958291037"
-            },
-            {
-                name: "Ankit Garg",
-                building: "ABB3",
-                cabin: "120",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "ankit.garg@jiit.ac.in",
-                phone: "9873125484"
-            },
-            {
-                name: "Smriti Bhatnagar",
-                building: "ABB1",
-                cabin: "235",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "smriti.bhatnagar@jiit.ac.in",
-                phone: "9871290169"
-            },
-            {
-                name: "Madhu Jhariya",
-                building: "ABB2",
-                cabin: "345",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "madhu.jhariya@jiit.ac.in",
-                phone: "9770573288"
-            },
-            {
-                name: "Madhu Jain",
-                building: "ABB3",
-                cabin: "220",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "madhu.jain@jiit.ac.in",
-                phone: "9868045613"
-            },
-            {
-                name: "Rahul Kaushik",
-                building: "ABB1",
-                cabin: "425",
-                floor: "4",
-                department: "Electronics and Communication Engineering",
-                email: "rahul.kaushik@jiit.ac.in",
-                phone: "9873660813"
-            },
-            {
-                name: "Vikram Karwal",
+                name: "Dr. Vikram Karwal",
                 building: "ABB1",
                 cabin: "201",
                 floor: "2",
                 department: "Electronics and Communication Engineering",
                 email: "vikram.karwal@jiit.ac.in",
-                phone: "9717652233"
+                phone: "9717652233",
+                status: "Available",
+                officeHours: "Mon-Fri 10AM-5PM"
             },
             {
-                name: "Saurabh Chaturvedi",
-                building: "ABB1",
-                cabin: "205",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "saurabh.chaturvedi@jiit.ac.in",
-                phone: "9910932770"
-            },
-            {
-                name: "Jasmine Saini",
+                name: "Prof. Jasmine Saini",
                 building: "ABB2",
                 cabin: "301",
                 floor: "3",
                 department: "Electronics and Communication Engineering",
                 email: "jasmine.saini@jiit.ac.in",
-                phone: "9871005331"
+                phone: "9871005331",
+                status: "Busy",
+                officeHours: "Tue-Thu 2PM-6PM"
             },
             {
-                name: "Richa Gupta",
-                building: "ABB2",
-                cabin: "305",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "richa.gupta@jiit.ac.in",
-                phone: "9711304116"
-            },
-            {
-                name: "Shruti Kalra",
-                building: "ABB3",
-                cabin: "101",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "shruti.kalra@jiit.ac.in",
-                phone: "9811768476"
-            },
-            {
-                name: "Ashish Goel",
-                building: "ABB3",
-                cabin: "102",
-                floor: "1",
-                department: "Electronics and Communication Engineering",
-                email: "ashish.goel@jiit.ac.in",
-                phone: "9811946987"
-            },
-            {
-                name: "Shamim Akhter",
+                name: "Dr. Alka Tripathi",
                 building: "ABB1",
-                cabin: "310",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "shamim.akhter@jiit.ac.in",
-                phone: "9899037043"
-            },
-            {
-                name: "vijay khare",
-                building: "ABB2",
-                cabin: "210",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "vijay.khare@jiit.ac.in",
-                phone: "9891372671"
-            },
-            {
-                name: "Mandeep Singh",
-                building: "ABB2",
-                cabin: "215",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "mandeep.narula@jiit.ac.in",
-                phone: "8826583790"
-            },
-            {
-                name: "Vineet Khandelwal",
-                building: "ABB1",
-                cabin: "405",
-                floor: "4",
-                department: "Electronics and Communication Engineering",
-                email: "vineet.khandelwal@jiit.ac.in",
-                phone: "9811378879"
-            },
-            {
-                name: "Prof. Alka Tripathi",
-                building: "ABB3",
-                cabin: "202",
+                cabin: "205",
                 floor: "2",
                 department: "Mathematics",
                 email: "alka.choubey@jiit.ac.in",
-                phone: "9876543210"
-            },
-            {
-                name: "Prof. Goldie Gabrani",
-                building: "ABB3",
-                cabin: "203",
-                floor: "2",
-                department: "Mathematics",
-                email: "goldie.gabrani@mail.jiit.ac.in",
-                phone: "9876543211"
-            },
-            {
-                name: "Prof. Lokendra Kumar",
-                building: "ABB1",
-                cabin: "315",
-                floor: "3",
-                department: "Mathematics",
-                email: "lokendra.kumar@jiit.ac.in",
-                phone: "9876543212"
-            },
-            {
-                name: "Dr. Pankaj Kumar Srivastava",
-                building: "ABB2",
-                cabin: "410",
-                floor: "4",
-                department: "Mathematics",
-                email: "pankaj.srivastava@jiit.ac.in",
-                phone: "9876543213"
-            },
-            {
-                name: "Dr. Yogesh Gupta",
-                building: "ABB2",
-                cabin: "115",
-                floor: "1",
-                department: "Mathematics",
-                email: "yogesh.gupta@jiit.ac.in",
-                phone: "9876543214"
-            },
-            {
-                name: "Saurabh Chaturvedi",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "saurabh.chaturvedi@jiit.ac.in",
-                phone: "9910932770"
-            },
-            {
-                name: "Jasmine Saini",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "jasmine.saini@jiit.ac.in",
-                phone: "9871005331"
-            },
-            {
-                name: "Richa Gupta",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "richa.gupta@jiit.ac.in",
-                phone: "9711304116"
-            },
-            {
-                name: "Shruti Kalra",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "shruti.kalra@jiit.ac.in",
-                phone: "9811768476"
-            },
-            {
-                name: "Ashish Goel",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "ashish.goel@jiit.ac.in",
-                phone: "9811946987"
-            },
-            {
-                name: "Shamim Akhter",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "shamim.akhter@jiit.ac.in",
-                phone: "9899037043"
-            },
-            {
-                name: "vijay khare",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "vijay.khare@jiit.ac.in",
-                phone: "9891372671"
-            },
-            {
-                name: "Mandeep Singh",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "mandeep.narula@jiit.ac.in",
-                phone: "8826583790"
-            },
-            {
-                name: "Vineet Khandelwal",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "vineet.khandelwal@jiit.ac.in",
-                phone: "9811378879"
-            },
-            {
-                name: "Gaurav Verma",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "gaurav.verma@jiit.ac.in",
-                phone: "9811506739"
-            },
-            {
-                name: "Vishal Narain Saxena",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "vishal.saxena@jiit.ac.in",
-                phone: "9818538867"
-            },
-            {
-                name: "Dharmendra Kumar Jhariya",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "dharmendra.jhariya@jiit.ac.in",
-                phone: "9635550330"
-            },
-            {
-                name: "Archana Pandey",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "archana.pandey@jiit.ac.in",
-                phone: "9958893317"
-            },
-            {
-                name: "Juhi Gupta",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "juhi@jiit.ac.in",
-                phone: "9650052364"
-            },
-            {
-                name: "Kirmender Singh",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "kirmender.singh@jiit.ac.in",
-                phone: "9717000615"
-            },
-            {
-                name: "Vivek Dwivedi",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "vivek.dwivedi@jiit.ac.in",
-                phone: "7289900592"
-            },
-            {
-                name: "Neetu Joshi",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "neetu.joshi@jiit.ac.in",
-                phone: "9675480315"
-            },
-            {
-                name: "Ekta Goel",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "ekta.goel@jiit.ac.in",
-                phone: "8052696820"
-            },
-            {
-                name: "Ankur Bhardwaj",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "ankur.bhardwaj@jiit.ac.in",
-                phone: "9871173145"
-            },
-            {
-                name: "Ruby Beniwal",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "ruby.beniwal@jiit.ac.in",
-                phone: "9717874337"
-            },
-            {
-                name: "Shivaji Tyagi",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "shivaji.tyagi@jiit.ac.in",
-                phone: "9811523664"
-            },
-            {
-                name: "Shradha Saxena",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "shradha.saxena@jiit.ac.in",
-                phone: "9911373860"
-            },
-            {
-                name: "Nitesh Kumar",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "nitesh.kumar@jiit.ac.in",
-                phone: "9911001239"
-            },
-            {
-                name: "Rachna Singh",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "rachna.singh@jiit.ac.in",
-                phone: "8982865801"
-            },
-            {
-                name: "Chandan Kumar",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "chandan.kumar1@jiit.ac.in",
-                phone: "9090308993"
-            },
-            {
-                name: "Vimal Saini",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "vimal.saini@jiit.ac.in",
-                phone: "9958291037"
-            },
-            {
-                name: "Ankit Garg",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "ankit.garg@jiit.ac.in",
-                phone: "9873125484"
-            },
-            {
-                name: "Smriti Bhatnagar",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "smriti.bhatnagar@jiit.ac.in",
-                phone: "9871290169"
-            },
-            {
-                name: "Madhu Jhariya",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "madhu.jhariya@jiit.ac.in",
-                phone: "9770573288"
-            },
-            {
-                name: "Madhu Jain",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "madhu.jain@jiit.ac.in",
-                phone: "9868045613"
-            },
-            {
-                name: "Rahul Kaushik",
-                building: "",
-                cabin: "",
-                department: "Electronics and Communication Engineering",
-                email: "rahul.kaushik@jiit.ac.in",
-                phone: "9873660813"
-            },
-            {
-                name: "Prof. Alka Tripathi",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "alka.choubey@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Prof. Goldie Gabrani",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "goldie.gabrani@mail.jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Prof. Lokendra Kumar",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "lokendra.kumar@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Prof. Bhagwati Prasad Chamola",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "bhagwati.prasad@jiit.ac.in, b_prasad10@yahoo.com",
-                phone: ""
+                phone: "9876543210",
+                status: "Available",
+                officeHours: "Mon-Wed-Fri 11AM-4PM"
             },
             {
                 name: "Prof. Amit Srivastava",
-                building: "",
-                cabin: "",
+                building: "ABB3",
+                cabin: "110",
+                floor: "1",
                 department: "Mathematics",
                 email: "amit.srivastava@jiit.ac.in",
-                phone: ""
+                phone: "9876543216",
+                status: "Away",
+                officeHours: "Mon-Fri 9AM-3PM"
             },
             {
-                name: "Prof. Pato Kumari",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "pato.kumari@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Pankaj Kumar Srivastava",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "pankaj.srivastava@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Dinesh C. S. Bisht",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "dinesh.bisht@jiit.ac.in, drbisht.math@gmail.com",
-                phone: ""
-            },
-            {
-                name: "Dr. Yogesh Gupta",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "yogesh.gupta@jiit.ac.in, yogesh4july@gmail.com",
-                phone: ""
-            },
-            {
-                name: "Dr. Anuj Bhardwaj",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "anuj.bhardwaj@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Lakhveer Kaur",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "lakhveer.aur@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Himanshu Agarwal",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "himanshu.agarwal@jiit.ac.in, himanshu203@gmail.com",
-                phone: ""
-            },
-            {
-                name: "Dr. Amita Bhagat",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "amita.bhagat@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Richa Sharma",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "richa.sharma@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Neha Ahlawat",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "neha.ahlawat@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Neha Singhal",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "nehasinghal.iitr@gmail.com, neha.singhal@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Kamlesh Kumar Shukla",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "Kamlesk.shukla@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Mohd. Sarfaraz",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "mohd.sarfaraz@jiit.ac.in, sarfarazm820@gmail.com",
-                phone: ""
-            },
-            {
-                name: "Dr. Manish Kumar Bansal",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "Manish.bansal@mail.jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Nisha Shukla",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "nisha.shukla@mail.jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Shikha Pandey",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "shikha.pandey@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Shruti",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "shruti@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Ram Surat Chauhan",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "ramsurat.chauhan@mail.jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Gaurav Aggarwal",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "gaurav.aggarwal@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Shashank Goel",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "shashank.goel@jiit.ac.in",
-                phone: ""
-            },
-            {
-                name: "Dr. Pankaj Singh Rana",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "pankaj.rana@mail.jiit.ac.in, pankajsinghrana032@gmail.com",
-                phone: ""
-            },
-            {
-                name: "Dr. Mohammad Prawesh Alam",
-                building: "",
-                cabin: "",
-                department: "Mathematics",
-                email: "prawesh.alam@mail.jiit.ac.in",
-                phone: ""
+                name: "Dr. Gaurav Verma",
+                building: "ABB2",
+                cabin: "305",
+                floor: "3",
+                department: "Computer Science",
+                email: "gaurav.verma@jiit.ac.in",
+                phone: "9811506739",
+                status: "Available",
+                officeHours: "Daily 10AM-6PM"
             }
         ];
 
@@ -1643,7 +1044,9 @@
                 floor: row.Floor || row.floor || '',
                 department: row.Department || row.department || '',
                 email: row.Email || row.email || '',
-                phone: String(row.Phone || row.phone || '')
+                phone: String(row.Phone || row.phone || ''),
+                status: row.Status || row.status || 'Available',
+                officeHours: row.OfficeHours || row.officeHours || 'Not specified'
             })).filter(f => f.name && f.email);
 
             if (newFacultyData.length === 0) {
@@ -1668,7 +1071,9 @@
                     Cabin: '201',
                     Department: 'Computer Science',
                     Email: 'john.doe@jiit.ac.in',
-                    Phone: '9876543210'
+                    Phone: '9876543210',
+                    Status: 'Available',
+                    OfficeHours: 'Mon-Fri 10AM-5PM'
                 },
                 {
                     Name: 'Prof. Jane Smith',
@@ -1677,7 +1082,9 @@
                     Cabin: '305',
                     Department: 'Electronics and Communication Engineering',
                     Email: 'jane.smith@jiit.ac.in',
-                    Phone: '9876543211'
+                    Phone: '9876543211',
+                    Status: 'Busy',
+                    OfficeHours: 'Tue-Thu 2PM-6PM'
                 }
             ];
 
@@ -1711,7 +1118,8 @@
             });
 
             departmentFilter.innerHTML = '<option value="all">All Departments</option>';
-            departments.forEach(dept => {const option = document.createElement('option');
+            departments.forEach(dept => {
+                const option = document.createElement('option');
                 option.value = dept;
                 option.textContent = dept;
                 departmentFilter.appendChild(option);
@@ -1725,6 +1133,14 @@
                 option.textContent = `Floor ${floor}`;
                 floorFilter.appendChild(option);
             });
+        }
+
+        function getStatusClass(status) {
+            if (!status) return 'away';
+            const s = status.toLowerCase();
+            if (s === 'available') return 'available';
+            if (s === 'busy') return 'busy';
+            return 'away';
         }
 
         function displayFaculty(facultyList) {
@@ -1741,6 +1157,8 @@
                 if (selectedFaculty && selectedFaculty.email === faculty.email) {
                     card.classList.add('highlighted');
                 }
+
+                const statusClass = getStatusClass(faculty.status);
                 
                 let locationHTML = '';
                 if (faculty.building && faculty.cabin) {
@@ -1755,16 +1173,29 @@
                     ${faculty.phone ? `<div class="faculty-info">
                         <strong>Phone:</strong> <a href="tel:+91${faculty.phone}" style="color: #667eea; text-decoration: none;">${faculty.phone}</a>
                     </div>` : ''}
-                    ${faculty.floor ? `<div class="faculty-info">
-                        <strong>Floor:</strong> ${faculty.floor}
-                    </div>` : ''}
-                    ${faculty.cabin ? `<div class="faculty-info">
-                        <strong>Cabin:</strong> ${faculty.cabin}
+                    <div class="availability-status ${statusClass}">
+                        <div class="status-dot ${statusClass}"></div>
+                        ${faculty.status || 'Away'}
+                    </div>
+                    ${faculty.officeHours ? `<div class="office-hours">
+                        <strong>Office Hours:</strong> ${faculty.officeHours}
                     </div>` : ''}
                     <span class="department-tag">${faculty.department}</span>
                     ${locationHTML}
+                    <div class="card-actions">
+                        <button class="btn-directions" onclick='showDirections(${JSON.stringify(faculty)})'>
+                            🧭 Directions
+                        </button>
+                        <button class="btn-appointment" onclick='requestAppointment(${JSON.stringify(faculty)})'>
+                            📅 Appointment
+                        </button>
+                    </div>
                 `;
-                card.onclick = () => highlightFaculty(faculty);
+                card.onclick = (e) => {
+                    if (!e.target.closest('button') && !e.target.closest('a')) {
+                        highlightFaculty(faculty);
+                    }
+                };
                 resultsContainer.appendChild(card);
             });
         }
@@ -1773,12 +1204,69 @@
             selectedFaculty = faculty;
             displayFaculty(filterFacultyData());
             
-            // Auto-navigate map to faculty location
             if (faculty.building && faculty.floor) {
                 document.getElementById('mapBuildingFilter').value = faculty.building;
                 document.getElementById('mapFloorFilter').value = faculty.floor;
                 updateMap();
             }
+        }
+
+        // Navigation Directions Function
+        function showDirections(faculty) {
+            const directionsContent = document.getElementById('directionsContent');
+            const building = faculty.building;
+            const floor = faculty.floor;
+            const cabin = faculty.cabin;
+
+            let directions = `
+                <div class="direction-step">
+                    <div class="step-number">1</div>
+                    <div class="step-text">Enter <strong>${building}</strong> building from the main entrance</div>
+                </div>
+                <div class="direction-step">
+                    <div class="step-number">2</div>
+                    <div class="step-text">Take the ${floor === '1' ? 'ground floor corridor' : `stairs or elevator to Floor ${floor}`}</div>
+                </div>
+                <div class="direction-step">
+                    <div class="step-number">3</div>
+                    <div class="step-text">${floor === '1' ? 'Walk straight to cabin area' : 'Exit the elevator/stairs and turn right'}</div>
+                </div>
+                <div class="direction-step">
+                    <div class="step-number">4</div>
+                    <div class="step-text">Look for <strong>Cabin ${cabin}</strong> on your ${parseInt(cabin.slice(-2)) <= 10 ? 'left' : 'right'}</div>
+                </div>
+                <div class="direction-step">
+                    <div class="step-number">5</div>
+                    <div class="step-text">You've arrived at <strong>${faculty.name}'s</strong> cabin!</div>
+                </div>
+            `;
+
+            directionsContent.innerHTML = directions;
+            document.getElementById('directionsModal').classList.add('active');
+        }
+
+        function closeDirectionsModal() {
+            document.getElementById('directionsModal').classList.remove('active');
+        }
+
+        // Appointment Request Function
+        function requestAppointment(faculty) {
+            const subject = encodeURIComponent(`Appointment Request - ${faculty.name}`);
+            const body = encodeURIComponent(`Dear ${faculty.name},
+
+I would like to request an appointment with you.
+
+My Name: [Your Name]
+Student ID: [Your ID]
+Purpose: [Reason for meeting]
+Preferred Date/Time: [Your availability]
+
+Thank you for your time.
+
+Best regards`);
+
+            const mailtoLink = `mailto:${faculty.email}?subject=${subject}&body=${body}`;
+            window.location.href = mailtoLink;
         }
 
         function filterFacultyData() {
@@ -1815,10 +1303,8 @@
                 return;
             }
 
-            // Get all cabins for this building and floor
             const cabinsOnFloor = facultyData.filter(f => f.building === building && f.floor === floor);
             
-            // Generate cabin numbers for this floor (e.g., Floor 2 = 201-220)
             const floorPrefix = floor;
             const cabinNumbers = [];
             for (let i = 1; i <= 20; i++) {
@@ -1864,7 +1350,6 @@
         departmentFilter.addEventListener('change', filterFaculty);
         document.getElementById('floorFilter').addEventListener('change', filterFaculty);
 
-        // Handle Enter key on login form
         document.getElementById('password').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 adminLogin();
