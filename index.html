@@ -1,891 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Faculty Finder - Campus Directory</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Faculty Finder - Smart Timetable & Campus Map</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        /* --- Base / layout --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            background: linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+            min-height: 100vh; color: #111; padding: 18px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        header { text-align:center; color:white; margin-bottom: 18px; position: relative; }
+        h1 { font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
+        .subtitle { opacity: 0.95; margin-top: 6px; }
+
+        .demo-notice { background:#fff3cd; border:2px solid #ffc107; padding:10px; border-radius:8px; margin:10px 0; color:#856404; text-align:center; }
+
+        .current-time-display {
+            background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); color: white;
+            padding: 10px 14px; border-radius: 10px; margin: 10px 0 14px; text-align:center;
+            font-size: 0.98em; font-weight:600;
         }
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        header {
-            text-align: center;
-            color: white;
-            margin-bottom: 40px;
-            position: relative;
-        }
-
-        h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-        }
-
-        .subtitle {
-            font-size: 1.1em;
-            opacity: 0.9;
-        }
-
-        .admin-btn {
-            position: absolute;
-            top: 0;
-            right: 0;
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            color: white;
-            border: 2px solid white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            transition: all 0.3s;
-        }
-
-        .admin-btn:hover {
-            background: rgba(255,255,255,0.3);
-            transform: translateY(-2px);
-        }
-
-        .admin-btn.logged-in {
-            background: rgba(16, 185, 129, 0.3);
-            border-color: #10b981;
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.7);
-            backdrop-filter: blur(5px);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal.active {
-            display: flex;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
-            animation: slideIn 0.3s;
-        }
-
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-header {
-            font-size: 1.8em;
-            margin-bottom: 20px;
-            color: #667eea;
-            text-align: center;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            transition: border-color 0.3s;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        .btn {
-            flex: 1;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-        }
-
-        .btn-success {
-            background: #10b981;
-        }
-
-        .upload-section {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .upload-section.visible {
-            display: block;
-        }
-
-        .upload-area {
-            border: 3px dashed #667eea;
-            border-radius: 10px;
-            padding: 30px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f8f9ff;
-        }
-
-        .upload-area:hover {
-            background: #f0f2ff;
-            border-color: #764ba2;
-        }
-
-        .upload-area.dragover {
-            background: #e8ebff;
-            border-color: #764ba2;
-            transform: scale(1.02);
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-        .upload-icon {
-            font-size: 3em;
-            margin-bottom: 10px;
-        }
-
-        .upload-text {
-            font-size: 1.1em;
-            color: #333;
-            margin-bottom: 10px;
-        }
-
-        .upload-hint {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .admin-header {
-            background: rgba(16, 185, 129, 0.1);
-            border-left: 4px solid #10b981;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .admin-header-text {
-            color: #059669;
-            font-weight: 600;
-        }
-
-        .search-section {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            margin-bottom: 30px;
-        }
-
+        .controls { display:flex; gap:12px; margin-bottom: 12px; align-items:center; flex-wrap:wrap; }
+        .search-section { flex: 1; min-width: 220px; }
         .search-bar {
-            width: 100%;
-            padding: 15px 20px;
-            font-size: 1.1em;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            transition: border-color 0.3s;
-        }
-
-        .search-bar:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .filters {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-        }
-
-        .filter-group {
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .filter-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: #333;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            cursor: pointer;
-            transition: border-color 0.3s;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .stats {
-            background: rgba(255,255,255,0.2);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 1.1em;
-        }
-
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-
-        .results {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 20px;
-        }
-
-        .faculty-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-
-        .faculty-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-        }
-
-        .faculty-card.highlighted {
-            border: 3px solid #fbbf24;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-            }
-            50% {
-                box-shadow: 0 0 30px rgba(251, 191, 36, 0.8);
-            }
-        }
-
-        .faculty-name {
-            font-size: 1.4em;
-            font-weight: 700;
-            color: #667eea;
-            margin-bottom: 15px;
-        }
-
-        .faculty-info {
-            margin-bottom: 10px;
-            color: #555;
-            display: flex;
-            align-items: flex-start;
-            word-break: break-word;
-        }
-
-        .faculty-info strong {
-            min-width: 90px;
-            color: #333;
-            flex-shrink: 0;
-        }
-
-        .availability-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 8px 15px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .availability-status.available {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .availability-status.busy {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .availability-status.away {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-        }
-
-        .status-dot.available {
-            background: #10b981;
-        }
-
-        .status-dot.busy {
-            background: #ef4444;
-        }
-
-        .status-dot.away {
-            background: #f59e0b;
-        }
-
-        .office-hours {
-            background: #f3f4f6;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 10px;
-            font-size: 0.9em;
-        }
-
-        .office-hours strong {
-            color: #667eea;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 15px;
-        }
-
-        .card-actions button {
-            flex: 1;
-            padding: 10px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.9em;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .btn-directions {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-directions:hover {
-            background: #5568d3;
-            transform: translateY(-2px);
-        }
-
-        .btn-appointment {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-appointment:hover {
-            background: #059669;
-            transform: translateY(-2px);
-        }
-
-        .department-tag {
-            display: inline-block;
-            padding: 6px 12px;
-            background: #f0f0f0;
-            border-radius: 20px;
-            font-size: 0.9em;
-            margin-top: 10px;
-            color: #666;
-        }
-
-        .location-badge {
-            display: inline-block;
-            padding: 8px 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 25px;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .directions-content {
-            margin-top: 20px;
-        }
-
-        .direction-step {
-            display: flex;
-            align-items: flex-start;
-            margin-bottom: 15px;
-            padding: 12px;
-            background: #f8f9fa;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-
-        .step-number {
-            background: #667eea;
-            color: white;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            margin-right: 15px;
-            flex-shrink: 0;
-        }
-
-        .step-text {
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .map-section {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-
-        .map-controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .map-controls select {
-            flex: 1;
-            min-width: 150px;
-        }
-
-        .floor-map {
-            background: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            min-height: 500px;
-            position: relative;
-        }
-
-        .floor-title {
-            font-size: 1.3em;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 20px;
-            text-align: center;
-        }
-
-        .cabin-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            padding: 20px;
-        }
-
-        .cabin {
-            background: white;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-        }
-
-        .cabin:hover {
-            transform: scale(1.05);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .cabin.occupied {
-            background: #e8ebff;
-            border-color: #667eea;
-        }
-
-        .cabin.vacant {
-            background: #f5f5f5;
-            border-color: #ccc;
-            opacity: 0.5;
-        }
-
-        .cabin.highlighted {
-            background: #fef3c7;
-            border: 3px solid #fbbf24;
-            box-shadow: 0 0 20px rgba(251, 191, 36, 0.5);
-            animation: pulse 2s infinite;
-        }
-
-        .cabin-number {
-            font-weight: 700;
-            font-size: 1.2em;
-            color: #333;
-            margin-bottom: 5px;
-        }
-
-        .cabin-faculty {
-            font-size: 0.9em;
-            color: #666;
-        }
-
-        .cabin-dept {
-            font-size: 0.8em;
-            color: #999;
-            margin-top: 5px;
-        }
-
-        .legend {
-            display: flex;
-            gap: 20px;
-            justify-content: center;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .legend-box {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-        }
-
-        .legend-box.occupied {
-            background: #e8ebff;
-            border: 2px solid #667eea;
-        }
-
-        .legend-box.vacant {
-            background: #f5f5f5;
-            border: 2px solid #ccc;
-        }
-
-        .legend-box.highlighted {
-            background: #fef3c7;
-            border: 2px solid #fbbf24;
-        }
-
-        .no-results {
-            text-align: center;
-            color: white;
-            font-size: 1.3em;
-            padding: 40px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-        }
-
-        .success-message {
-            background: #10b981;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            animation: slideDown 0.3s;
-        }
-
-        .error-message {
-            background: #ef4444;
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            animation: slideDown 0.3s;
-        }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .template-info {
-            background: #fff3cd;
-            border: 2px solid #ffc107;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-            font-size: 0.95em;
-        }
-
-        .template-info strong {
-            display: block;
-            margin-bottom: 8px;
-            color: #856404;
-        }
-
-        @media (max-width: 1024px) {
-            .main-content {
-                grid-template-columns: 1fr;
-            }
-
-            .cabin-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 1.8em;
-            }
-
-            .admin-btn {
-                position: static;
-                margin: 15px auto 0;
-                display: block;
-                width: fit-content;
-            }
-
-            .filters {
-                flex-direction: column;
-            }
-
-            .cabin-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-
-            .modal-buttons, .card-actions {
-                flex-direction: column;
-            }
+            width: 100%; padding: 12px 14px; font-size: 1.02em; border: 2px solid #e0e0e0; border-radius: 10px;
+        }
+        .filters { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+        select { padding:10px; border-radius:8px; border:2px solid #e0e0e0; min-width:160px; }
+
+        .btn { background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; font-size:0.95em; }
+        .btn-secondary { background:#6c757d; }
+
+        .stats { background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); color: white; padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; text-align:center; font-size: 0.95em; }
+
+        .main-content { display:grid; grid-template-columns: 1fr 480px; gap:16px; align-items:start; }
+        .results { display:grid; grid-template-columns: 1fr; gap:14px; }
+
+        .faculty-card { background:white; padding:14px; border-radius:10px; box-shadow:0 6px 18px rgba(15,23,32,0.06); transition:transform .15s; }
+        .faculty-card:hover { transform: translateY(-4px); }
+        .faculty-card.highlighted { border:3px solid #fbbf24; box-shadow:0 0 20px rgba(251,191,36,0.35); }
+
+        .faculty-name { font-size:1.05rem; font-weight:700; color:#667eea; margin-bottom:6px; }
+        .faculty-info { margin-bottom:8px; color:#444; display:flex; gap:8px; flex-wrap:wrap; }
+        .faculty-info strong { min-width:70px; color:#333; flex-shrink:0; }
+
+        .smart-status { padding:10px; border-radius:8px; margin:8px 0; color:white; font-weight:700; display:flex; gap:10px; align-items:center; }
+        .smart-status.available { background: linear-gradient(135deg,#10b981 0%,#059669 100%); }
+        .smart-status.teaching { background: linear-gradient(135deg,#ef4444 0%,#dc2626 100%); }
+        .smart-status.break { background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); }
+
+        .next-available { background:#f3f4f6; padding:8px; border-radius:8px; margin-top:8px; border-left:4px solid #667eea; font-size:0.9em; }
+
+        .department-tag { display:inline-block; padding:6px 10px; background:#f0f0f0; border-radius:20px; font-size:0.85em; color:#666; margin-top:8px; }
+        .location-badge { display:inline-block; padding:6px 10px; background: linear-gradient(135deg,#667eea 0%,#764ba2 100%); color:white; border-radius:20px; font-weight:600; margin-top:8px; float:right; }
+
+        .timetable-preview { background:#f8f9fa; padding:10px; border-radius:8px; margin-top:10px; max-height:160px; overflow:auto; }
+        .time-slot { display:flex; justify-content:space-between; padding:7px; margin:6px 0; background:white; border-radius:6px; font-size:0.88em; }
+        .time-slot.current { background:#fef3c7; border:2px solid #f59e0b; font-weight:700; }
+
+        .card-actions { display:flex; gap:8px; margin-top:10px; }
+        .btn-directions { background:#667eea; color:white; border-radius:8px; padding:8px 10px; border:none; cursor:pointer; }
+        .btn-appointment { background:#10b981; color:white; border-radius:8px; padding:8px 10px; border:none; cursor:pointer; }
+
+        /* --- Map / cabins --- */
+        .map-section { background:white; padding:16px; border-radius:12px; box-shadow:0 10px 30px rgba(0,0,0,0.08); }
+        .map-controls { display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+        .floor-map { background:#f8f9fa; border-radius:10px; padding:10px; min-height:320px; position:relative; }
+        .floor-title { font-weight:700; color:#333; text-align:center; margin-bottom:8px; }
+        .cabin-grid { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; padding:8px; }
+        .cabin { background:white; border:2px solid #e0e0e0; border-radius:8px; padding:12px; cursor:pointer; text-align:center; transition:all .15s; }
+        .cabin.occupied { background:#e8ebff; border-color:#667eea; }
+        .cabin.vacant { background:#f5f5f5; border-color:#ccc; opacity:0.8; }
+        .cabin.highlighted { background:#fef3c7; border:3px solid #fbbf24; box-shadow:0 0 14px rgba(251,191,36,0.25); }
+        .cabin-number { font-weight:700; color:#333; margin-bottom:6px; }
+        .cabin-faculty { font-size:0.9em; color:#666; }
+
+        .legend { display:flex; gap:12px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+        .legend-item { display:flex; gap:6px; align-items:center; color:#333; }
+        .legend-box { width:16px; height:16px; border-radius:4px; }
+
+        /* --- Modal --- */
+        .modal { display:none; position:fixed; inset:0; background: rgba(0,0,0,0.6); z-index:1000; justify-content:center; align-items:center; padding:16px; }
+        .modal.active { display:flex; }
+        .modal-content { background:white; padding:18px; border-radius:10px; width:100%; max-width:720px; max-height:90vh; overflow:auto; }
+        .modal-header { font-weight:700; color:#667eea; margin-bottom:8px; }
+
+        .direction-step { display:flex; gap:12px; align-items:flex-start; background:#f8f9fa; padding:10px; border-radius:8px; margin-bottom:8px; border-left:4px solid #667eea; }
+        .step-number { width:30px; height:30px; border-radius:50%; background:#667eea; color:white; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+        .no-results { text-align:center; color:white; font-size:1.02em; padding:20px; background: rgba(255,255,255,0.08); border-radius:10px; }
+
+        @media (max-width: 980px) {
+            .main-content { grid-template-columns: 1fr; }
+            .cabin-grid { grid-template-columns: repeat(2,1fr); }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <button class="admin-btn" id="adminBtn" onclick="toggleAdminModal()">
-                🔐 Admin Login
-            </button>
             <h1>🎓 Faculty Finder</h1>
-            <p class="subtitle">Find your teacher's cabin with interactive floor maps</p>
+            <div class="subtitle">Smart Timetable Integration • Find cabins, request appointments & get directions</div>
         </header>
 
-        <!-- Admin Login Modal -->
-        <div class="modal" id="loginModal">
-            <div class="modal-content">
-                <div class="modal-header">🔐 Admin Login</div>
-                <div class="form-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="Enter username">
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter password">
-                </div>
-                <div class="modal-buttons">
-                    <button class="btn" onclick="adminLogin()">Login</button>
-                    <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                </div>
-            </div>
+        <div class="demo-notice">🚀 DEMO MODE — Timetable-based status is evaluated in the browser local time.</div>
+
+        <div class="current-time-display" id="currentTime" aria-live="polite">Loading time...</div>
+
+        <div class="stats" id="statsBar">
+            Total: <strong id="totalCount">0</strong> |
+            Available: <strong id="availableCount">0</strong> |
+            Teaching: <strong id="teachingCount">0</strong>
         </div>
 
-        <!-- Directions Modal -->
-        <div class="modal" id="directionsModal">
-            <div class="modal-content">
-                <div class="modal-header">🧭 Navigation Directions</div>
-                <div id="directionsContent" class="directions-content"></div>
-                <div class="modal-buttons">
-                    <button class="btn btn-secondary" onclick="closeDirectionsModal()">Close</button>
-                </div>
+        <div class="controls">
+            <div class="search-section">
+                <input id="searchBar" class="search-bar" placeholder="Search by name, email or department..." aria-label="Search faculty" />
             </div>
-        </div>
 
-        <div id="messageContainer"></div>
-
-        <!-- Upload Section (Only visible for admin) -->
-        <div class="upload-section" id="uploadSection">
-            <div class="admin-header">
-                <span class="admin-header-text">👨‍💼 Admin Mode Active</span>
-                <button class="btn btn-danger" style="padding: 8px 20px;" onclick="adminLogout()">Logout</button>
+            <div class="filters" style="flex:0 0 auto;">
+                <select id="buildingFilter" title="Filter by building">
+                    <option value="all">All Buildings</option>
+                </select>
+                <select id="departmentFilter" title="Filter by department">
+                    <option value="all">All Departments</option>
+                </select>
+                <select id="floorFilter" title="Filter by floor">
+                    <option value="all">All Floors</option>
+                </select>
             </div>
-            <div class="upload-area" id="uploadArea">
-                <div class="upload-icon">📁</div>
-                <div class="upload-text">Click to upload or drag and drop Excel file</div>
-                <div class="upload-hint">Supports .xlsx and .xls files</div>
-                <input type="file" id="fileInput" accept=".xlsx,.xls">
-            </div>
-            <div style="text-align: center;">
-                <button class="btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
-                <button class="btn btn-secondary" onclick="downloadTemplate()">Download Template</button>
-            </div>
-            <div class="template-info">
-                <strong>📋 Excel File Format:</strong>
-                Your Excel file should have these columns: <strong>Name, Building, Floor, Cabin, Department, Email, Phone, Status, OfficeHours</strong>
-                <br>Example: John Doe | ABB1 | 2 | 201 | Computer Science | john@jiit.ac.in | 9876543210 | Available | Mon-Fri 10AM-4PM
-            </div>
-        </div>
 
-        <div class="stats" id="stats">
-            Total Faculty: <strong id="totalCount">0</strong>
-        </div>
-
-        <div class="search-section">
-            <input type="text" id="searchBar" class="search-bar" placeholder="Search by teacher name, email, or phone...">
-            
-            <div class="filters">
-                <div class="filter-group">
-                    <label for="buildingFilter">Building</label>
-                    <select id="buildingFilter">
-                        <option value="all">All Buildings</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group">
-                    <label for="departmentFilter">Department/Branch</label>
-                    <select id="departmentFilter">
-                        <option value="all">All Departments</option>
-                    </select>
-                </div>
-
-                <div class="filter-group">
-                    <label for="floorFilter">Floor</label>
-                    <select id="floorFilter">
-                        <option value="all">All Floors</option>
-                    </select>
-                </div>
+            <div style="margin-left:auto; display:flex; gap:8px;">
+                <button id="exportBtn" class="btn" title="Export visible list to Excel">Export</button>
+                <button id="clearBtn" class="btn btn-secondary" title="Clear filters">Clear</button>
             </div>
         </div>
 
         <div class="main-content">
             <div>
-                <div class="results" id="results"></div>
+                <div id="results" class="results" role="list"></div>
             </div>
 
-            <div class="map-section">
-                <h2 style="color: #667eea; margin-bottom: 20px;">🗺️ Interactive Floor Map</h2>
+            <aside class="map-section" aria-label="Interactive floor map area">
+                <h3 style="color:#667eea; margin-bottom:8px;">🗺️ Interactive Floor Map</h3>
                 <div class="map-controls">
-                    <select id="mapBuildingFilter" onchange="updateMap()">
+                    <select id="mapBuildingFilter" aria-label="Map building">
                         <option value="">Select Building</option>
-                        <option value="ABB1">ABB1</option>
-                        <option value="ABB2">ABB2</option>
-                        <option value="ABB3">ABB3</option>
                     </select>
-                    <select id="mapFloorFilter" onchange="updateMap()">
+                    <select id="mapFloorFilter" aria-label="Map floor">
                         <option value="">Select Floor</option>
-                        <option value="1">Floor 1</option>
-                        <option value="2">Floor 2</option>
-                        <option value="3">Floor 3</option>
-                        <option value="4">Floor 4</option>
                     </select>
                 </div>
-                <div class="floor-map" id="floorMap">
-                    <div style="text-align: center; color: #999; padding: 50px;">
-                        Select a building and floor to view the map
-                    </div>
+
+                <div id="floorMap" class="floor-map">
+                    <div style="text-align:center; color:#999; padding:40px;">Select building & floor to view map</div>
                 </div>
-                <div class="legend">
-                    <div class="legend-item">
-                        <div class="legend-box occupied"></div>
-                        <span>Occupied</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-box vacant"></div>
-                        <span>Vacant</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-box highlighted"></div>
-                        <span>Selected</span>
-                    </div>
+
+                <div class="legend" aria-hidden="false">
+                    <div class="legend-item"><div class="legend-box occupied" style="background:#e8ebff;border:2px solid #667eea"></div><span>Occupied</span></div>
+                    <div class="legend-item"><div class="legend-box vacant" style="background:#f5f5f5;border:2px solid #ccc"></div><span>Vacant</span></div>
+                    <div class="legend-item"><div class="legend-box highlighted" style="background:#fef3c7;border:2px solid #fbbf24"></div><span>Selected</span></div>
                 </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Directions / Schedule Modals (created dynamically) -->
+    <div id="directionsModal" class="modal" aria-hidden="true">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <div class="modal-header">🧭 Navigation Directions</div>
+            <div id="directionsContent"></div>
+            <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+                <button class="btn btn-secondary" onclick="closeDirectionsModal()">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        const ADMIN_USERNAME = "admin";
-        const ADMIN_PASSWORD = "admin123";
-        
-        let isAdminLoggedIn = false;
-        let selectedFaculty = null;
-
+        /* ---------- Faculty data (timetable + cabin/building/floor info) ----------
+           This is the original timetable-based dataset extended with optional
+           officeHours/status fields used by map/directions/appointments.
+           (Kept sample entries from your earlier code)
+        */
         let facultyData = [
             {
                 name: "Dr. Vikram Karwal",
@@ -895,8 +198,42 @@
                 department: "Electronics and Communication Engineering",
                 email: "vikram.karwal@jiit.ac.in",
                 phone: "9717652233",
-                status: "Available",
-                officeHours: "Mon-Fri 10AM-5PM"
+                officeHours: "Mon-Fri 10AM-5PM",
+                timetable: {
+                    Monday: [
+                        { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
+                        { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
+                        { time: "12:00-13:00", subject: "Free", room: "Cabin 201" },
+                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                    ],
+                    Tuesday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
+                        { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                        { time: "14:00-15:00", subject: "Signal Processing", room: "Room 305" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                    ],
+                    Wednesday: [
+                        { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
+                        { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 201" }
+                    ],
+                    Thursday: [
+                        { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                    ],
+                    Friday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
+                        { time: "10:00-11:00", subject: "Signal Processing", room: "Room 305" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                        { time: "14:00-15:00", subject: "Faculty Meeting", room: "Conference Room" }
+                    ]
+                }
             },
             {
                 name: "Prof. Jasmine Saini",
@@ -906,8 +243,39 @@
                 department: "Electronics and Communication Engineering",
                 email: "jasmine.saini@jiit.ac.in",
                 phone: "9871005331",
-                status: "Busy",
-                officeHours: "Tue-Thu 2PM-6PM"
+                officeHours: "Tue-Thu 2PM-6PM",
+                timetable: {
+                    Monday: [
+                        { time: "09:00-10:00", subject: "Communication Systems", room: "Room 201" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                        { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" },
+                        { time: "15:00-16:00", subject: "Lab Session", room: "Lab 102" }
+                    ],
+                    Tuesday: [
+                        { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
+                        { time: "14:00-15:00", subject: "Microwave Engineering", room: "Room 203" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 301" }
+                    ],
+                    Wednesday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 301" },
+                        { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
+                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 102" }
+                    ],
+                    Thursday: [
+                        { time: "09:00-10:00", subject: "Microwave Engineering", room: "Room 203" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                        { time: "11:00-12:00", subject: "Communication Systems", room: "Room 201" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
+                    ],
+                    Friday: [
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                        { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
+                    ]
+                }
             },
             {
                 name: "Dr. Alka Tripathi",
@@ -917,8 +285,37 @@
                 department: "Mathematics",
                 email: "alka.choubey@jiit.ac.in",
                 phone: "9876543210",
-                status: "Available",
-                officeHours: "Mon-Wed-Fri 11AM-4PM"
+                officeHours: "Mon-Wed-Fri 11AM-4PM",
+                timetable: {
+                    Monday: [
+                        { time: "09:00-10:00", subject: "Calculus", room: "Room 401" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                        { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                    ],
+                    Tuesday: [
+                        { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 205" },
+                        { time: "14:00-15:00", subject: "Linear Algebra", room: "Room 402" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 205" }
+                    ],
+                    Wednesday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 205" },
+                        { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 205" }
+                    ],
+                    Thursday: [
+                        { time: "09:00-10:00", subject: "Linear Algebra", room: "Room 402" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                        { time: "11:00-12:00", subject: "Calculus", room: "Room 401" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                    ],
+                    Friday: [
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                        { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                    ]
+                }
             },
             {
                 name: "Prof. Amit Srivastava",
@@ -928,8 +325,35 @@
                 department: "Mathematics",
                 email: "amit.srivastava@jiit.ac.in",
                 phone: "9876543216",
-                status: "Away",
-                officeHours: "Mon-Fri 9AM-3PM"
+                officeHours: "Mon-Fri 9AM-3PM",
+                timetable: {
+                    Monday: [
+                        { time: "09:00-10:00", subject: "Probability", room: "Room 501" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                        { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                    ],
+                    Tuesday: [
+                        { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 110" },
+                        { time: "14:00-15:00", subject: "Statistics", room: "Room 502" }
+                    ],
+                    Wednesday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 110" },
+                        { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                    ],
+                    Thursday: [
+                        { time: "09:00-10:00", subject: "Statistics", room: "Room 502" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                        { time: "11:00-12:00", subject: "Probability", room: "Room 501" }
+                    ],
+                    Friday: [
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                        { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                    ]
+                }
             },
             {
                 name: "Dr. Gaurav Verma",
@@ -939,427 +363,533 @@
                 department: "Computer Science",
                 email: "gaurav.verma@jiit.ac.in",
                 phone: "9811506739",
-                status: "Available",
-                officeHours: "Daily 10AM-6PM"
+                officeHours: "Daily 10AM-6PM",
+                timetable: {
+                    Monday: [
+                        { time: "09:00-10:00", subject: "Data Structures", room: "Room 101" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                        { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" },
+                        { time: "15:00-16:00", subject: "Programming Lab", room: "Lab 201" }
+                    ],
+                    Tuesday: [
+                        { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
+                        { time: "14:00-15:00", subject: "Algorithms", room: "Room 102" },
+                        { time: "15:00-16:00", subject: "Free", room: "Cabin 305" }
+                    ],
+                    Wednesday: [
+                        { time: "09:00-10:00", subject: "Free", room: "Cabin 305" },
+                        { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
+                        { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
+                        { time: "14:00-15:00", subject: "Programming Lab", room: "Lab 201" }
+                    ],
+                    Thursday: [
+                        { time: "09:00-10:00", subject: "Algorithms", room: "Room 102" },
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                        { time: "11:00-12:00", subject: "Data Structures", room: "Room 101" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
+                    ],
+                    Friday: [
+                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                        { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
+                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
+                    ]
+                }
             }
         ];
 
+        /* ---------- Time helpers (single source of now) ---------- */
+        function getNow() { return new Date(); }
+        function getDayNameFromDate(d) {
+            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            return days[d.getDay()];
+        }
+        function formatNowForDisplay(now) {
+            const options = { weekday:'long', year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', timeZoneName:'short' };
+            return `📅 ${now.toLocaleString('en-US', options)}`;
+        }
+        function parseTimeToMinutes(timeStr) {
+            const [h,m] = timeStr.split(':').map(Number);
+            return h*60 + m;
+        }
+        function isWithinTimeSlot(timeRange, now) {
+            const [start, end] = timeRange.split('-');
+            const startMin = parseTimeToMinutes(start);
+            const endMin = parseTimeToMinutes(end);
+            const curMin = now.getHours()*60 + now.getMinutes();
+            return curMin >= startMin && curMin < endMin;
+        }
+
+        /* ---------- Compute faculty status at a given 'now' ---------- */
+        function getFacultyStatusAt(faculty, now) {
+            const day = getDayNameFromDate(now);
+            if (!faculty.timetable || !faculty.timetable[day] || faculty.timetable[day].length === 0) {
+                return {
+                    status: (day === 'Saturday' || day === 'Sunday') ? 'break' : 'away',
+                    message: (day === 'Saturday' || day === 'Sunday') ? 'Weekend — No classes' : 'No schedule for today',
+                    location: faculty.cabin ? `${faculty.building} - Cabin ${faculty.cabin}` : 'Unknown',
+                    nextAvailable: 'Check schedule'
+                };
+            }
+
+            const todaySchedule = faculty.timetable[day];
+            let currentSlot = null;
+            let nextFreeSlot = null;
+            const curTotal = now.getHours()*60 + now.getMinutes();
+
+            for (const slot of todaySchedule) {
+                if (isWithinTimeSlot(slot.time, now)) {
+                    currentSlot = slot;
+                    break;
+                }
+            }
+
+            for (const slot of todaySchedule) {
+                const [startTime] = slot.time.split('-');
+                const slotTotal = parseTimeToMinutes(startTime);
+                if (slotTotal > curTotal && slot.subject.toLowerCase() === 'free') {
+                    nextFreeSlot = slot;
+                    break;
+                }
+            }
+
+            if (!currentSlot) {
+                return {
+                    status: 'away',
+                    message: 'Currently not in cabin',
+                    location: faculty.cabin ? `${faculty.building} - Cabin ${faculty.cabin}` : 'Away',
+                    nextAvailable: nextFreeSlot ? `Next available: ${nextFreeSlot.time}` : 'Check schedule for availability'
+                };
+            }
+
+            if (currentSlot.subject.toLowerCase() === 'free') {
+                return {
+                    status: 'available',
+                    message: `Available in ${currentSlot.room}`,
+                    location: currentSlot.room,
+                    nextAvailable: 'Available now!',
+                    currentSlot
+                };
+            } else {
+                return {
+                    status: 'teaching',
+                    message: `Teaching ${currentSlot.subject}`,
+                    location: currentSlot.room,
+                    nextAvailable: nextFreeSlot ? `Free after this at ${nextFreeSlot.time}` : 'Check schedule for next availability',
+                    currentSlot
+                };
+            }
+        }
+
+        /* ---------- DOM elements ---------- */
         const searchBar = document.getElementById('searchBar');
+        const resultsContainer = document.getElementById('results');
+        const totalCountEl = document.getElementById('totalCount');
+        const availableCountEl = document.getElementById('availableCount');
+        const teachingCountEl = document.getElementById('teachingCount');
+        const currentTimeEl = document.getElementById('currentTime');
         const buildingFilter = document.getElementById('buildingFilter');
         const departmentFilter = document.getElementById('departmentFilter');
-        const resultsContainer = document.getElementById('results');
-        const uploadArea = document.getElementById('uploadArea');
-        const fileInput = document.getElementById('fileInput');
+        const floorFilter = document.getElementById('floorFilter');
+        const exportBtn = document.getElementById('exportBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const mapBuildingFilter = document.getElementById('mapBuildingFilter');
+        const mapFloorFilter = document.getElementById('mapFloorFilter');
+        const floorMapDiv = document.getElementById('floorMap');
+        const directionsModal = document.getElementById('directionsModal');
+        const directionsContent = document.getElementById('directionsContent');
 
-        // Admin Login Functions
-        function toggleAdminModal() {
-            const modal = document.getElementById('loginModal');
-            if (isAdminLoggedIn) {
-                return;
-            }
-            modal.classList.add('active');
+        let selectedFaculty = null;
+
+        /* ---------- Utility: debounce ---------- */
+        function debounce(fn, wait=180) {
+            let t;
+            return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
         }
 
-        function closeModal() {
-            document.getElementById('loginModal').classList.remove('active');
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        }
-
-        function adminLogin() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-
-            if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-                isAdminLoggedIn = true;
-                document.getElementById('uploadSection').classList.add('visible');
-                document.getElementById('adminBtn').textContent = '✓ Admin Logged In';
-                document.getElementById('adminBtn').classList.add('logged-in');
-                closeModal();
-                showMessage('Successfully logged in as Admin!', 'success');
-            } else {
-                showMessage('Invalid username or password!', 'error');
-            }
-        }
-
-        function adminLogout() {
-            isAdminLoggedIn = false;
-            document.getElementById('uploadSection').classList.remove('visible');
-            document.getElementById('adminBtn').textContent = '🔐 Admin Login';
-            document.getElementById('adminBtn').classList.remove('logged-in');
-            showMessage('Logged out successfully!', 'success');
-        }
-
-        // Upload functionality
-        uploadArea.addEventListener('click', () => fileInput.click());
-
-        uploadArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            uploadArea.classList.add('dragover');
-        });
-
-        uploadArea.addEventListener('dragleave', () => {
-            uploadArea.classList.remove('dragover');
-        });
-
-        uploadArea.addEventListener('drop', (e) => {
-            e.preventDefault();
-            uploadArea.classList.remove('dragover');
-            const file = e.dataTransfer.files[0];
-            if (file) handleFile(file);
-        });
-
-        fileInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            if (file) handleFile(file);
-        });
-
-        function handleFile(file) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet);
-                    
-                    processExcelData(jsonData);
-                } catch (error) {
-                    showMessage('Error reading file. Please make sure it\'s a valid Excel file.', 'error');
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-
-        function processExcelData(data) {
-            if (data.length === 0) {
-                showMessage('The Excel file is empty!', 'error');
-                return;
-            }
-
-            const newFacultyData = data.map(row => ({
-                name: row.Name || row.name || '',
-                building: row.Building || row.building || '',
-                cabin: row.Cabin || row.cabin || '',
-                floor: row.Floor || row.floor || '',
-                department: row.Department || row.department || '',
-                email: row.Email || row.email || '',
-                phone: String(row.Phone || row.phone || ''),
-                status: row.Status || row.status || 'Available',
-                officeHours: row.OfficeHours || row.officeHours || 'Not specified'
-            })).filter(f => f.name && f.email);
-
-            if (newFacultyData.length === 0) {
-                showMessage('No valid faculty data found. Please check your Excel format.', 'error');
-                return;
-            }
-
-            facultyData = newFacultyData;
-            updateFilters();
-            displayFaculty(facultyData);
-            document.getElementById('totalCount').textContent = facultyData.length;
-            showMessage(`Successfully loaded ${facultyData.length} faculty members!`, 'success');
-            updateMap();
-        }
-
-        function downloadTemplate() {
-            const template = [
-                {
-                    Name: 'Dr. John Doe',
-                    Building: 'ABB1',
-                    Floor: '2',
-                    Cabin: '201',
-                    Department: 'Computer Science',
-                    Email: 'john.doe@jiit.ac.in',
-                    Phone: '9876543210',
-                    Status: 'Available',
-                    OfficeHours: 'Mon-Fri 10AM-5PM'
-                },
-                {
-                    Name: 'Prof. Jane Smith',
-                    Building: 'ABB2',
-                    Floor: '3',
-                    Cabin: '305',
-                    Department: 'Electronics and Communication Engineering',
-                    Email: 'jane.smith@jiit.ac.in',
-                    Phone: '9876543211',
-                    Status: 'Busy',
-                    OfficeHours: 'Tue-Thu 2PM-6PM'
-                }
-            ];
-
-            const ws = XLSX.utils.json_to_sheet(template);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, 'Faculty Data');
-            XLSX.writeFile(wb, 'faculty_template.xlsx');
-        }
-
-        function showMessage(text, type) {
-            const messageContainer = document.getElementById('messageContainer');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = type === 'success' ? 'success-message' : 'error-message';
-            messageDiv.textContent = text;
-            messageContainer.innerHTML = '';
-            messageContainer.appendChild(messageDiv);
-            setTimeout(() => messageDiv.remove(), 5000);
-        }
-
+        /* ---------- Filters / search logic ---------- */
         function updateFilters() {
-            const buildings = [...new Set(facultyData.map(f => f.building).filter(b => b))];
-            const departments = [...new Set(facultyData.map(f => f.department).filter(d => d))];
-            const floors = [...new Set(facultyData.map(f => f.floor).filter(fl => fl))].sort();
+            const buildings = [...new Set(facultyData.map(f => f.building).filter(Boolean))].sort();
+            const departments = [...new Set(facultyData.map(f => f.department).filter(Boolean))].sort();
+            const floors = [...new Set(facultyData.map(f => f.floor).filter(Boolean))].sort();
 
             buildingFilter.innerHTML = '<option value="all">All Buildings</option>';
-            buildings.forEach(building => {
-                const option = document.createElement('option');
-                option.value = building;
-                option.textContent = building;
-                buildingFilter.appendChild(option);
+            mapBuildingFilter.innerHTML = '<option value="">Select Building</option>';
+            buildings.forEach(b => {
+                const opt = document.createElement('option'); opt.value = b; opt.textContent = b; buildingFilter.appendChild(opt);
+                const opt2 = document.createElement('option'); opt2.value = b; opt2.textContent = b; mapBuildingFilter.appendChild(opt2);
             });
 
             departmentFilter.innerHTML = '<option value="all">All Departments</option>';
-            departments.forEach(dept => {
-                const option = document.createElement('option');
-                option.value = dept;
-                option.textContent = dept;
-                departmentFilter.appendChild(option);
-            });
+            departments.forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; departmentFilter.appendChild(o); });
 
-            const floorFilter = document.getElementById('floorFilter');
             floorFilter.innerHTML = '<option value="all">All Floors</option>';
-            floors.forEach(floor => {
-                const option = document.createElement('option');
-                option.value = floor;
-                option.textContent = `Floor ${floor}`;
-                floorFilter.appendChild(option);
+            mapFloorFilter.innerHTML = '<option value="">Select Floor</option>';
+            floors.forEach(fl => {
+                const o = document.createElement('option'); o.value=fl; o.textContent=`Floor ${fl}`; floorFilter.appendChild(o);
+                const o2 = document.createElement('option'); o2.value=fl; o2.textContent=`Floor ${fl}`; mapFloorFilter.appendChild(o2);
             });
         }
 
-        function getStatusClass(status) {
-            if (!status) return 'away';
-            const s = status.toLowerCase();
-            if (s === 'available') return 'available';
-            if (s === 'busy') return 'busy';
-            return 'away';
+        function getFilteredFacultyList(term = '') {
+            const searchTerm = (term || '').trim().toLowerCase();
+            const b = buildingFilter.value;
+            const d = departmentFilter.value;
+            const fl = floorFilter.value;
+            return facultyData.filter(f => {
+                const matchesSearch = !searchTerm || (f.name && f.name.toLowerCase().includes(searchTerm))
+                    || (f.email && f.email.toLowerCase().includes(searchTerm))
+                    || (f.department && f.department.toLowerCase().includes(searchTerm))
+                    || (f.phone && f.phone.includes(searchTerm));
+                const matchesBuilding = (b === 'all' || b === '' ) ? true : f.building === b;
+                const matchesDept = (d === 'all' || d === '') ? true : f.department === d;
+                const matchesFloor = (fl === 'all' || fl === '') ? true : String(f.floor) === String(fl);
+                return matchesSearch && matchesBuilding && matchesDept && matchesFloor;
+            });
         }
 
-        function displayFaculty(facultyList) {
+        /* ---------- Rendering faculty cards ---------- */
+        function displayFaculty(list, now = getNow()) {
             resultsContainer.innerHTML = '';
-
-            if (facultyList.length === 0) {
-                resultsContainer.innerHTML = '<div class="no-results">No faculty members found. Try adjusting your filters.</div>';
+            if (!list || list.length === 0) {
+                resultsContainer.innerHTML = '<div class="no-results">No faculty found. Adjust search/filters.</div>';
                 return;
             }
 
-            facultyList.forEach(faculty => {
+            list.forEach((faculty, idx) => {
+                const status = getFacultyStatusAt(faculty, now);
+                const day = getDayNameFromDate(now);
+                const todaySchedule = faculty.timetable?.[day] || [];
+
                 const card = document.createElement('div');
                 card.className = 'faculty-card';
-                if (selectedFaculty && selectedFaculty.email === faculty.email) {
-                    card.classList.add('highlighted');
+                if (selectedFaculty && selectedFaculty.email === faculty.email) card.classList.add('highlighted');
+                card.setAttribute('role','listitem');
+
+                const statusClass = status.status === 'available' ? 'available' : (status.status === 'teaching' ? 'teaching' : 'break');
+                const statusIcon = status.status === 'available' ? '✅' : (status.status === 'teaching' ? '📚' : '⏰');
+
+                // timetable preview
+                let timetableHTML = '';
+                if (todaySchedule.length) {
+                    timetableHTML = `<div class="timetable-preview"><h4 style="color:#667eea;margin:0 0 8px 0;font-size:0.95em">📅 Today's Schedule (${day})</h4>` +
+                        todaySchedule.map(slot => `<div class="time-slot ${status.currentSlot && slot.time === status.currentSlot.time ? 'current' : ''}"><span>${slot.time}</span><span style="opacity:.9">${slot.subject} - ${slot.room}</span></div>`).join('') +
+                        `</div>`;
                 }
 
-                const statusClass = getStatusClass(faculty.status);
-                
-                let locationHTML = '';
-                if (faculty.building && faculty.cabin) {
-                    locationHTML = `<div class="location-badge">${faculty.building} - Floor ${faculty.floor} - Cabin ${faculty.cabin}</div>`;
-                }
-                
                 card.innerHTML = `
                     <div class="faculty-name">${faculty.name}</div>
-                    <div class="faculty-info">
-                        <strong>Email:</strong> <a href="mailto:${faculty.email}" style="color: #667eea; text-decoration: none;">${faculty.email}</a>
+                    <div class="faculty-info"><strong>Email:</strong><a href="mailto:${faculty.email}" style="color:#667eea;text-decoration:none">${faculty.email}</a></div>
+                    ${faculty.phone ? `<div class="faculty-info"><strong>Phone:</strong><a href="tel:+91${faculty.phone}" style="color:#667eea;text-decoration:none">+91 ${faculty.phone}</a></div>` : ''}
+                    <div class="smart-status ${statusClass}"><span style="font-size:1.1em">${statusIcon}</span><div><strong style="display:block">${status.message}</strong><div style="font-size:.9em;margin-top:4px">📍 ${status.location}</div></div></div>
+                    <div class="next-available"><strong>⏰ Next Available:</strong> ${status.nextAvailable}</div>
+                    <div style="margin-top:8px;">
+                        <span class="department-tag">${faculty.department}</span>
+                        ${faculty.building ? `<span class="location-badge">🏢 ${faculty.building} - Floor ${faculty.floor} - Cabin ${faculty.cabin}</span>` : ''}
                     </div>
-                    ${faculty.phone ? `<div class="faculty-info">
-                        <strong>Phone:</strong> <a href="tel:+91${faculty.phone}" style="color: #667eea; text-decoration: none;">${faculty.phone}</a>
-                    </div>` : ''}
-                    <div class="availability-status ${statusClass}">
-                        <div class="status-dot ${statusClass}"></div>
-                        ${faculty.status || 'Away'}
-                    </div>
-                    ${faculty.officeHours ? `<div class="office-hours">
-                        <strong>Office Hours:</strong> ${faculty.officeHours}
-                    </div>` : ''}
-                    <span class="department-tag">${faculty.department}</span>
-                    ${locationHTML}
+                    ${timetableHTML}
                     <div class="card-actions">
-                        <button class="btn-directions" onclick='showDirections(${JSON.stringify(faculty)})'>
-                            🧭 Directions
-                        </button>
-                        <button class="btn-appointment" onclick='requestAppointment(${JSON.stringify(faculty)})'>
-                            📅 Appointment
-                        </button>
+                        <button class="btn-directions" data-index="${idx}" aria-label="Directions for ${faculty.name}">🧭 Directions</button>
+                        <button class="btn-appointment" data-index="${idx}" aria-label="Request appointment with ${faculty.name}">📅 Appointment</button>
+                        <button class="btn view-schedule" data-index="${idx}" style="background:#5568d3;color:white;border-radius:8px;padding:8px 10px;border:none;cursor:pointer">📋 Full Week</button>
                     </div>
                 `;
-                card.onclick = (e) => {
+
+                // clicking card (not targeting a button) highlights and focuses map
+                card.addEventListener('click', (e) => {
                     if (!e.target.closest('button') && !e.target.closest('a')) {
-                        highlightFaculty(faculty);
+                        highlightFacultyByIndex(idx);
                     }
-                };
+                });
+
                 resultsContainer.appendChild(card);
             });
         }
 
-        function highlightFaculty(faculty) {
-            selectedFaculty = faculty;
-            displayFaculty(filterFacultyData());
-            
-            if (faculty.building && faculty.floor) {
-                document.getElementById('mapBuildingFilter').value = faculty.building;
-                document.getElementById('mapFloorFilter').value = faculty.floor;
-                updateMap();
-            }
+        /* ---------- Highlight / select faculty ---------- */
+        function highlightFacultyByIndex(idx) {
+            const f = getFilteredFacultyList(searchBar.value)[idx];
+            // idx refers to the filtered list; to find index in the main array, match email:
+            if (!f) return;
+            selectedFaculty = facultyData.find(x => x.email === f.email) || f;
+            // set map selectors and update
+            if (selectedFaculty.building) mapBuildingFilter.value = selectedFaculty.building;
+            if (selectedFaculty.floor) mapFloorFilter.value = selectedFaculty.floor;
+            updateMap();
+            // re-display using current filter set (so highlight shows)
+            const now = getNow();
+            displayFaculty(getFilteredFacultyList(searchBar.value), now);
         }
 
-        // Navigation Directions Function
-        function showDirections(faculty) {
-            const directionsContent = document.getElementById('directionsContent');
-            const building = faculty.building;
-            const floor = faculty.floor;
-            const cabin = faculty.cabin;
-
-            let directions = `
-                <div class="direction-step">
-                    <div class="step-number">1</div>
-                    <div class="step-text">Enter <strong>${building}</strong> building from the main entrance</div>
-                </div>
-                <div class="direction-step">
-                    <div class="step-number">2</div>
-                    <div class="step-text">Take the ${floor === '1' ? 'ground floor corridor' : `stairs or elevator to Floor ${floor}`}</div>
-                </div>
-                <div class="direction-step">
-                    <div class="step-number">3</div>
-                    <div class="step-text">${floor === '1' ? 'Walk straight to cabin area' : 'Exit the elevator/stairs and turn right'}</div>
-                </div>
-                <div class="direction-step">
-                    <div class="step-number">4</div>
-                    <div class="step-text">Look for <strong>Cabin ${cabin}</strong> on your ${parseInt(cabin.slice(-2)) <= 10 ? 'left' : 'right'}</div>
-                </div>
-                <div class="direction-step">
-                    <div class="step-number">5</div>
-                    <div class="step-text">You've arrived at <strong>${faculty.name}'s</strong> cabin!</div>
-                </div>
-            `;
-
-            directionsContent.innerHTML = directions;
-            document.getElementById('directionsModal').classList.add('active');
-        }
-
-        function closeDirectionsModal() {
-            document.getElementById('directionsModal').classList.remove('active');
-        }
-
-        // Appointment Request Function
-        function requestAppointment(faculty) {
-            const subject = encodeURIComponent(`Appointment Request - ${faculty.name}`);
-            const body = encodeURIComponent(`Dear ${faculty.name},
-
-I would like to request an appointment with you.
-
-My Name: [Your Name]
-Student ID: [Your ID]
-Purpose: [Reason for meeting]
-Preferred Date/Time: [Your availability]
-
-Thank you for your time.
-
-Best regards`);
-
-            const mailtoLink = `mailto:${faculty.email}?subject=${subject}&body=${body}`;
-            window.location.href = mailtoLink;
-        }
-
-        function filterFacultyData() {
-            const searchTerm = searchBar.value.toLowerCase();
-            const buildingValue = buildingFilter.value;
-            const departmentValue = departmentFilter.value;
-            const floorValue = document.getElementById('floorFilter').value;
-
-            return facultyData.filter(faculty => {
-                const matchesSearch = faculty.name.toLowerCase().includes(searchTerm) ||
-                                     faculty.email.toLowerCase().includes(searchTerm) ||
-                                     faculty.phone.includes(searchTerm);
-                const matchesBuilding = buildingValue === 'all' || faculty.building === buildingValue;
-                const matchesDepartment = departmentValue === 'all' || faculty.department === departmentValue;
-                const matchesFloor = floorValue === 'all' || faculty.floor === floorValue;
-                
-                return matchesSearch && matchesBuilding && matchesDepartment && matchesFloor;
+        /* ---------- View full schedule modal (by index from filtered list) ---------- */
+        function showFullScheduleByIndexFromFiltered(idx) {
+            const filtered = getFilteredFacultyList(searchBar.value);
+            const faculty = filtered[idx];
+            if (!faculty) return;
+            // Build modal content
+            const days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
+            let scheduleHTML = `<div style="max-height:60vh;overflow:auto"><h3 style="color:#667eea;margin-bottom:10px">${faculty.name}'s Weekly Schedule</h3>`;
+            days.forEach(day=>{
+                if (faculty.timetable?.[day]?.length) {
+                    scheduleHTML += `<div style="margin-bottom:12px"><h4 style="margin:6px 0;color:#333">${day}</h4>`;
+                    scheduleHTML += faculty.timetable[day].map(slot=>`<div class="time-slot" style="margin-bottom:6px"><span>${slot.time}</span><span>${slot.subject} - ${slot.room}</span></div>`).join('');
+                    scheduleHTML += `</div>`;
+                }
             });
+            scheduleHTML += `</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="btn btn-secondary" onclick="closeModalByElement(this)">Close</button></div>`;
+            openModalWithHTML(scheduleHTML, 'Weekly Schedule');
         }
 
-        function filterFaculty() {
-            const filtered = filterFacultyData();
-            displayFaculty(filtered);
+        /* ---------- Modal helpers ---------- */
+        function openModalWithHTML(innerHTML, title='') {
+            const modal = document.createElement('div');
+            modal.className = 'modal active';
+            modal.innerHTML = `<div class="modal-content" role="dialog" aria-modal="true">
+                <div class="modal-header">${title}</div>
+                <div>${innerHTML}</div>
+            </div>`;
+            document.body.appendChild(modal);
+            modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+            const onKey = (ev) => { if (ev.key === 'Escape') { modal.remove(); window.removeEventListener('keydown', onKey); } };
+            window.addEventListener('keydown', onKey);
+        }
+        function closeModalByElement(button) { button.closest('.modal')?.remove(); }
+
+        /* ---------- Directions (open directions modal) ---------- */
+        function showDirectionsByIndexFromFiltered(idx) {
+            const filtered = getFilteredFacultyList(searchBar.value);
+            const faculty = filtered[idx];
+            if (!faculty) return showMessage('No faculty selected for directions', 'error');
+
+            const building = faculty.building || 'Building';
+            const floor = faculty.floor || 'floor';
+            const cabin = faculty.cabin || 'cabin';
+
+            // Simple heuristic directions — can be extended to integrate actual map data
+            const cabinNumDigits = cabin ? cabin.replace(/\D/g,'') : '';
+            const lateral = (cabinNumDigits && parseInt(cabinNumDigits,10) <= 110) ? 'left' : 'right';
+            const steps = [
+                `Enter <strong>${building}</strong> from the main entrance.`,
+                floor === '1' ? 'Proceed along the ground floor corridor.' : `Take the stairs or elevator to <strong>Floor ${floor}</strong>.`,
+                floor === '1' ? 'Walk straight to the cabin area.' : 'Exit the elevator/stairs and follow the corridor.',
+                `Look for <strong>Cabin ${cabin}</strong> on your <strong>${lateral}</strong>.`,
+                `You have arrived at <strong>${faculty.name}'s</strong> cabin.`
+            ];
+
+            directionsContent.innerHTML = steps.map((s,i)=>`<div class="direction-step"><div class="step-number">${i+1}</div><div class="step-text">${s}</div></div>`).join('');
+            directionsModal.classList.add('active');
+            directionsModal.setAttribute('aria-hidden','false');
+        }
+        function closeDirectionsModal() {
+            directionsModal.classList.remove('active');
+            directionsModal.setAttribute('aria-hidden','true');
         }
 
-        // Floor Map Functions
+        /* ---------- Appointment (mailto) ---------- */
+        function requestAppointmentByIndexFromFiltered(idx) {
+            const filtered = getFilteredFacultyList(searchBar.value);
+            const faculty = filtered[idx];
+            if (!faculty) return showMessage('No faculty selected for appointment','error');
+
+            const subject = encodeURIComponent(`Appointment Request - ${faculty.name}`);
+            const body = encodeURIComponent(`Dear ${faculty.name},%0D%0A%0D%0AI would like to request an appointment with you.%0D%0A%0D%0AMy Name: [Your Name]%0D%0AStudent ID: [Your ID]%0D%0APurpose: [Reason for meeting]%0D%0APreferred Date/Time: [Your availability]%0D%0A%0D%0AThank you.%0D%0A`);
+            window.location.href = `mailto:${faculty.email}?subject=${subject}&body=${body}`;
+        }
+
+        /* ---------- Map rendering: show cabins present on selected building/floor ---------- */
         function updateMap() {
-            const building = document.getElementById('mapBuildingFilter').value;
-            const floor = document.getElementById('mapFloorFilter').value;
-            const floorMapDiv = document.getElementById('floorMap');
-
+            const building = mapBuildingFilter.value;
+            const floor = mapFloorFilter.value;
             if (!building || !floor) {
-                floorMapDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 50px;">Select a building and floor to view the map</div>';
+                floorMapDiv.innerHTML = `<div style="text-align:center;color:#999;padding:40px">Select a building and floor to view the map</div>`;
                 return;
             }
 
-            const cabinsOnFloor = facultyData.filter(f => f.building === building && f.floor === floor);
-            
-            const floorPrefix = floor;
-            const cabinNumbers = [];
-            for (let i = 1; i <= 20; i++) {
-                const cabinNum = floorPrefix + String(i).padStart(2, '0');
-                cabinNumbers.push(cabinNum);
-            }
+            // Gather cabins on this building+floor
+            const cabins = facultyData.filter(f => f.building === building && String(f.floor) === String(floor));
+            // Collect cabin codes and display them
+            const cabinCodes = [...new Set(cabins.map(c => c.cabin).filter(Boolean))].sort();
 
+            // If there are no known cabins for that floor, show a simple grid of placeholders
             let html = `<div class="floor-title">${building} - Floor ${floor}</div>`;
             html += '<div class="cabin-grid">';
-
-            cabinNumbers.forEach(cabinNum => {
-                const faculty = cabinsOnFloor.find(f => f.cabin === cabinNum);
-                const isHighlighted = selectedFaculty && selectedFaculty.cabin === cabinNum;
-                
-                if (faculty) {
-                    html += `
-                        <div class="cabin occupied ${isHighlighted ? 'highlighted' : ''}" onclick='selectCabin(${JSON.stringify(faculty)})'>
-                            <div class="cabin-number">${cabinNum}</div>
-                            <div class="cabin-faculty">${faculty.name.split(' ').slice(-1)[0]}</div>
-                            <div class="cabin-dept">${faculty.department.substring(0, 15)}...</div>
-                        </div>
-                    `;
-                } else {
-                    html += `
-                        <div class="cabin vacant">
-                            <div class="cabin-number">${cabinNum}</div>
-                            <div class="cabin-faculty">Vacant</div>
-                        </div>
-                    `;
+            if (cabinCodes.length === 0) {
+                // heuristic: show numbered cabins 01..12 prefixed by floor
+                for (let i=1;i<=12;i++){
+                    const num = String(i).padStart(2,'0');
+                    const cabinId = `${floor}${num}`;
+                    html += `<div class="cabin vacant" data-cabin="${cabinId}"><div class="cabin-number">${cabinId}</div><div class="cabin-faculty">Vacant</div></div>`;
                 }
-            });
-
+            } else {
+                cabinCodes.forEach(code=>{
+                    const faculty = cabins.find(c=>c.cabin === code);
+                    const isHighlighted = selectedFaculty && selectedFaculty.cabin === code && selectedFaculty.building === building;
+                    if (faculty) {
+                        html += `<div class="cabin occupied ${isHighlighted? 'highlighted' : ''}" data-email="${faculty.email}">
+                                    <div class="cabin-number">${code}</div>
+                                    <div class="cabin-faculty">${faculty.name.split(' ').slice(-1)[0]}</div>
+                                    <div class="cabin-dept" style="font-size:.8em;color:#999">${(faculty.department||'').slice(0,18)}</div>
+                                 </div>`;
+                    } else {
+                        html += `<div class="cabin vacant" data-cabin="${code}"><div class="cabin-number">${code}</div><div class="cabin-faculty">Vacant</div></div>`;
+                    }
+                });
+            }
             html += '</div>';
             floorMapDiv.innerHTML = html;
+
+            // Attach click handlers to cabins (delegated here)
+            floorMapDiv.querySelectorAll('.cabin.occupied').forEach(el=>{
+                el.addEventListener('click', () => {
+                    const email = el.getAttribute('data-email');
+                    const fac = facultyData.find(f=>f.email === email);
+                    if (fac) {
+                        selectedFaculty = fac;
+                        // sync filters & display
+                        buildingFilter.value = fac.building || 'all';
+                        departmentFilter.value = fac.department || 'all';
+                        floorFilter.value = fac.floor || 'all';
+                        displayFaculty( getFilteredFacultyList(searchBar.value), getNow() );
+                    }
+                });
+            });
+            // Vacant cabins click does nothing for now
         }
 
-        function selectCabin(faculty) {
-            highlightFaculty(faculty);
+        /* ---------- Export visible to Excel ---------- */
+        function exportVisibleToExcel() {
+            const list = getFilteredFacultyList(searchBar.value);
+            if (!list.length) return alert('No rows to export.');
+            const rows = list.map(f => ({
+                Name: f.name,
+                Department: f.department,
+                Email: f.email,
+                Phone: f.phone || '',
+                Building: f.building || '',
+                Floor: f.floor || '',
+                Cabin: f.cabin || '',
+                OfficeHours: f.officeHours || ''
+            }));
+            const ws = XLSX.utils.json_to_sheet(rows);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Faculty');
+            XLSX.writeFile(wb, `faculty_export_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        searchBar.addEventListener('input', filterFaculty);
-        buildingFilter.addEventListener('change', filterFaculty);
-        departmentFilter.addEventListener('change', filterFaculty);
-        document.getElementById('floorFilter').addEventListener('change', filterFaculty);
+        /* ---------- UI message helper ---------- */
+        function showMessage(text, type='success') {
+            // lightweight in-page toast (reusing currentTimeEl area briefly)
+            const el = document.createElement('div');
+            el.textContent = text;
+            el.style.position = 'fixed';
+            el.style.right = '18px';
+            el.style.bottom = '18px';
+            el.style.background = type==='success' ? '#10b981' : '#ef4444';
+            el.style.color = 'white';
+            el.style.padding = '10px 14px';
+            el.style.borderRadius = '8px';
+            el.style.boxShadow = '0 8px 24px rgba(0,0,0,0.15)';
+            document.body.appendChild(el);
+            setTimeout(()=>el.remove(), 4000);
+        }
 
-        document.getElementById('password').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                adminLogin();
+        /* ---------- Event delegation for result buttons ---------- */
+        resultsContainer.addEventListener('click', (e) => {
+            const viewBtn = e.target.closest('.view-schedule');
+            if (viewBtn) {
+                const idx = Number(viewBtn.dataset.index);
+                showFullScheduleByIndexFromFiltered(idx);
+                return;
+            }
+            const dirBtn = e.target.closest('.btn-directions');
+            if (dirBtn) {
+                const idx = Number(dirBtn.dataset.index);
+                showDirectionsByIndexFromFiltered(idx);
+                return;
+            }
+            const appBtn = e.target.closest('.btn-appointment');
+            if (appBtn) {
+                const idx = Number(appBtn.dataset.index);
+                requestAppointmentByIndexFromFiltered(idx);
+                return;
             }
         });
 
-        // Initialize
+        /* ---------- Search / filter handlers ---------- */
+        const onFilterChangeDebounced = debounce(() => {
+            const now = getNow();
+            const filtered = getFilteredFacultyList(searchBar.value);
+            displayFaculty(filtered, now);
+            updateStats(now);
+        }, 160);
+
+        searchBar.addEventListener('input', onFilterChangeDebounced);
+        buildingFilter.addEventListener('change', onFilterChangeDebounced);
+        departmentFilter.addEventListener('change', onFilterChangeDebounced);
+        floorFilter.addEventListener('change', onFilterChangeDebounced);
+
+        // map selectors
+        mapBuildingFilter.addEventListener('change', updateMap);
+        mapFloorFilter.addEventListener('change', updateMap);
+
+        clearBtn.addEventListener('click', () => {
+            searchBar.value = '';
+            buildingFilter.value = 'all';
+            departmentFilter.value = 'all';
+            floorFilter.value = 'all';
+            mapBuildingFilter.value = '';
+            mapFloorFilter.value = '';
+            updateMap();
+            onFilterChangeDebounced();
+        });
+
+        exportBtn.addEventListener('click', exportVisibleToExcel);
+
+        // directions modal close on background click or Escape
+        directionsModal.addEventListener('click', (e) => { if (e.target === directionsModal) closeDirectionsModal(); });
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDirectionsModal(); });
+
+        /* ---------- Stats update ---------- */
+        function updateStats(now = getNow()) {
+            let available = 0, teaching = 0;
+            for (const f of facultyData) {
+                const s = getFacultyStatusAt(f, now);
+                if (s.status === 'available') available++;
+                if (s.status === 'teaching') teaching++;
+            }
+            totalCountEl.textContent = facultyData.length;
+            availableCountEl.textContent = available;
+            teachingCountEl.textContent = teaching;
+        }
+
+        /* ---------- Current time tick and refresh ---------- */
+        function tick() {
+            const now = getNow();
+            currentTimeEl.textContent = formatNowForDisplay(now);
+        }
+
+        function refreshAll() {
+            const now = getNow();
+            const filtered = getFilteredFacultyList(searchBar.value);
+            displayFaculty(filtered, now);
+            updateStats(now);
+            updateMap();
+            tick();
+        }
+
+        /* ---------- Initialization ---------- */
         updateFilters();
-        displayFaculty(facultyData);
-        document.getElementById('totalCount').textContent = facultyData.length;
+        refreshAll();
+        // update every 30 seconds for live status & map
+        setInterval(refreshAll, 30000);
+        // update current time every second
+        setInterval(tick, 1000);
+
+        /* ---------- Small accessibility helpers (optional) ---------- */
+        // If user clicks exported cells or other UI, you might want to focus result area
+        // (left intentionally minimal)
+
     </script>
 </body>
 </html>
