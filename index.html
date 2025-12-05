@@ -558,7 +558,7 @@
             if (!currentSlot) {
                 return {
                     status: 'away',
-                    message: 'Currently not on campus',
+                    message: 'Currently not in cabin',
                     location: faculty.cabin ? `${faculty.building} - Cabin ${faculty.cabin}` : 'Away',
                     nextAvailable: nextFreeSlot ? `Next available: ${nextFreeSlot.time}` : 'Check schedule for availability'
                 };
