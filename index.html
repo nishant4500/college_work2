@@ -19,6 +19,22 @@
         h1 { font-size: 1.8rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.2); }
         .subtitle { opacity: 0.95; margin-top: 6px; }
 
+        /* Admin button */
+        .admin-btn {
+            position: absolute;
+            top: 8px;
+            right: 18px;
+            background: rgba(255,255,255,0.18);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.25);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            backdrop-filter: blur(6px);
+        }
+        .admin-btn.logged-in { background: rgba(16,185,129,0.22); border-color:#10b981; }
+
         .demo-notice { background:#fff3cd; border:2px solid #ffc107; padding:10px; border-radius:8px; margin:10px 0; color:#856404; text-align:center; }
 
         .current-time-display {
@@ -55,6 +71,7 @@
         .smart-status.available { background: linear-gradient(135deg,#10b981 0%,#059669 100%); }
         .smart-status.teaching { background: linear-gradient(135deg,#ef4444 0%,#dc2626 100%); }
         .smart-status.break { background: linear-gradient(135deg,#f59e0b 0%,#d97706 100%); }
+        .smart-status.holiday { background: linear-gradient(135deg,#6b7280 0%,#374151 100%); }
 
         .next-available { background:#f3f4f6; padding:8px; border-radius:8px; margin-top:8px; border-left:4px solid #667eea; font-size:0.9em; }
 
@@ -97,9 +114,18 @@
 
         .no-results { text-align:center; color:white; font-size:1.02em; padding:20px; background: rgba(255,255,255,0.08); border-radius:10px; }
 
+        /* Upload/admin UI */
+        .upload-section { display:none; background:white; padding:14px; border-radius:10px; margin-bottom:12px; box-shadow:0 8px 20px rgba(0,0,0,0.06); }
+        .upload-section.visible { display:block; }
+        .upload-area { border:2px dashed #667eea; border-radius:8px; padding:20px; text-align:center; cursor:pointer; background:#f8f9ff; margin-bottom:8px; }
+        .upload-area.dragover { background:#eef2ff; transform:scale(1.01); }
+
+        .holiday-pill { background:#6b7280;color:white;padding:6px 10px;border-radius:20px;font-weight:700;margin-left:6px; font-size:0.85em; }
+
         @media (max-width: 980px) {
             .main-content { grid-template-columns: 1fr; }
             .cabin-grid { grid-template-columns: repeat(2,1fr); }
+            .admin-btn { position: static; margin: 12px auto 0; display: inline-block; }
         }
     </style>
 </head>
@@ -108,16 +134,39 @@
         <header>
             <h1>🎓 Faculty Finder</h1>
             <div class="subtitle">Smart Timetable Integration • Find cabins, request appointments & get directions</div>
+            <button id="adminBtn" class="admin-btn" aria-haspopup="true" aria-controls="adminModal">🔐 Admin</button>
         </header>
 
-        <div class="demo-notice">🚀 DEMO MODE — Timetable-based status is evaluated in the browser local time.</div>
+        <div id="uploadSection" class="upload-section" aria-hidden="true">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                <div style="font-weight:700;color:#059669">👨‍💼 Admin Mode</div>
+                <div>
+                    <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+                </div>
+            </div>
+
+            <div id="uploadArea" class="upload-area" tabindex="0">
+                <div style="font-size:1.6rem">📁</div>
+                <div style="font-weight:700;margin-top:8px">Click or drag & drop Excel (.xlsx/.xls)</div>
+                <div style="font-size:0.9rem;color:#666;margin-top:6px">Columns accepted: Name, Building, Floor, Cabin, Department, Email, Phone, OfficeHours, Holiday</div>
+                <input id="fileInput" type="file" accept=".xlsx,.xls" style="display:none">
+            </div>
+
+            <div style="display:flex;gap:8px;justify-content:flex-end;">
+                <button id="chooseFileBtn" class="btn">Choose File</button>
+                <button id="downloadTemplateBtn" class="btn btn-secondary">Download Template</button>
+            </div>
+        </div>
+
+        <div class="demo-notice">🚀 DEMO MODE — Timetable-based status is evaluated in the browser local time. Use Admin to upload data or mark a faculty 'On Holiday'.</div>
 
         <div class="current-time-display" id="currentTime" aria-live="polite">Loading time...</div>
 
         <div class="stats" id="statsBar">
             Total: <strong id="totalCount">0</strong> |
             Available: <strong id="availableCount">0</strong> |
-            Teaching: <strong id="teachingCount">0</strong>
+            Teaching: <strong id="teachingCount">0</strong> |
+            Holiday: <strong id="holidayCount">0</strong>
         </div>
 
         <div class="controls">
@@ -172,7 +221,26 @@
         </div>
     </div>
 
-    <!-- Directions / Schedule Modals (created dynamically) -->
+    <!-- Admin Login Modal (hidden until needed) -->
+    <div id="adminModal" class="modal" aria-hidden="true">
+        <div class="modal-content" role="dialog" aria-modal="true">
+            <div class="modal-header">🔐 Admin Login</div>
+            <div style="margin-bottom:8px">
+                <label style="display:block;font-weight:700;margin-bottom:6px">Username</label>
+                <input id="adminUser" type="text" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px" />
+            </div>
+            <div style="margin-bottom:8px">
+                <label style="display:block;font-weight:700;margin-bottom:6px">Password</label>
+                <input id="adminPass" type="password" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px" />
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button id="adminLoginBtn" class="btn">Login</button>
+                <button class="btn btn-secondary" onclick="closeAdminModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Directions Modal (reused) -->
     <div id="directionsModal" class="modal" aria-hidden="true">
         <div class="modal-content" role="dialog" aria-modal="true">
             <div class="modal-header">🧭 Navigation Directions</div>
@@ -184,222 +252,245 @@
     </div>
 
     <script>
-        /* ---------- Faculty data (timetable + cabin/building/floor info) ----------
-           This is the original timetable-based dataset extended with optional
-           officeHours/status fields used by map/directions/appointments.
-           (Kept sample entries from your earlier code)
-        */
-        let facultyData = [
-            {
-                name: "Dr. Vikram Karwal",
-                building: "ABB1",
-                cabin: "201",
-                floor: "2",
-                department: "Electronics and Communication Engineering",
-                email: "vikram.karwal@jiit.ac.in",
-                phone: "9717652233",
-                officeHours: "Mon-Fri 10AM-5PM",
-                timetable: {
-                    Monday: [
-                        { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
-                        { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
-                        { time: "12:00-13:00", subject: "Free", room: "Cabin 201" },
-                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
-                    ],
-                    Tuesday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
-                        { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
-                        { time: "14:00-15:00", subject: "Signal Processing", room: "Room 305" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
-                    ],
-                    Wednesday: [
-                        { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
-                        { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 201" }
-                    ],
-                    Thursday: [
-                        { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
-                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
-                    ],
-                    Friday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
-                        { time: "10:00-11:00", subject: "Signal Processing", room: "Room 305" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
-                        { time: "14:00-15:00", subject: "Faculty Meeting", room: "Conference Room" }
-                    ]
-                }
-            },
-            {
-                name: "Prof. Jasmine Saini",
-                building: "ABB2",
-                cabin: "301",
-                floor: "3",
-                department: "Electronics and Communication Engineering",
-                email: "jasmine.saini@jiit.ac.in",
-                phone: "9871005331",
-                officeHours: "Tue-Thu 2PM-6PM",
-                timetable: {
-                    Monday: [
-                        { time: "09:00-10:00", subject: "Communication Systems", room: "Room 201" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
-                        { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" },
-                        { time: "15:00-16:00", subject: "Lab Session", room: "Lab 102" }
-                    ],
-                    Tuesday: [
-                        { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
-                        { time: "14:00-15:00", subject: "Microwave Engineering", room: "Room 203" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 301" }
-                    ],
-                    Wednesday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 301" },
-                        { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
-                        { time: "14:00-15:00", subject: "Lab Session", room: "Lab 102" }
-                    ],
-                    Thursday: [
-                        { time: "09:00-10:00", subject: "Microwave Engineering", room: "Room 203" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
-                        { time: "11:00-12:00", subject: "Communication Systems", room: "Room 201" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
-                    ],
-                    Friday: [
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
-                        { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
-                    ]
-                }
-            },
-            {
-                name: "Dr. Alka Tripathi",
-                building: "ABB1",
-                cabin: "205",
-                floor: "2",
-                department: "Mathematics",
-                email: "alka.choubey@jiit.ac.in",
-                phone: "9876543210",
-                officeHours: "Mon-Wed-Fri 11AM-4PM",
-                timetable: {
-                    Monday: [
-                        { time: "09:00-10:00", subject: "Calculus", room: "Room 401" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
-                        { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
-                    ],
-                    Tuesday: [
-                        { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 205" },
-                        { time: "14:00-15:00", subject: "Linear Algebra", room: "Room 402" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 205" }
-                    ],
-                    Wednesday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 205" },
-                        { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 205" }
-                    ],
-                    Thursday: [
-                        { time: "09:00-10:00", subject: "Linear Algebra", room: "Room 402" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
-                        { time: "11:00-12:00", subject: "Calculus", room: "Room 401" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
-                    ],
-                    Friday: [
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
-                        { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
-                    ]
-                }
-            },
-            {
-                name: "Prof. Amit Srivastava",
-                building: "ABB3",
-                cabin: "110",
-                floor: "1",
-                department: "Mathematics",
-                email: "amit.srivastava@jiit.ac.in",
-                phone: "9876543216",
-                officeHours: "Mon-Fri 9AM-3PM",
-                timetable: {
-                    Monday: [
-                        { time: "09:00-10:00", subject: "Probability", room: "Room 501" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
-                        { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
-                    ],
-                    Tuesday: [
-                        { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 110" },
-                        { time: "14:00-15:00", subject: "Statistics", room: "Room 502" }
-                    ],
-                    Wednesday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 110" },
-                        { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
-                    ],
-                    Thursday: [
-                        { time: "09:00-10:00", subject: "Statistics", room: "Room 502" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
-                        { time: "11:00-12:00", subject: "Probability", room: "Room 501" }
-                    ],
-                    Friday: [
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
-                        { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
-                    ]
-                }
-            },
-            {
-                name: "Dr. Gaurav Verma",
-                building: "ABB2",
-                cabin: "305",
-                floor: "3",
-                department: "Computer Science",
-                email: "gaurav.verma@jiit.ac.in",
-                phone: "9811506739",
-                officeHours: "Daily 10AM-6PM",
-                timetable: {
-                    Monday: [
-                        { time: "09:00-10:00", subject: "Data Structures", room: "Room 101" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
-                        { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" },
-                        { time: "15:00-16:00", subject: "Programming Lab", room: "Lab 201" }
-                    ],
-                    Tuesday: [
-                        { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
-                        { time: "14:00-15:00", subject: "Algorithms", room: "Room 102" },
-                        { time: "15:00-16:00", subject: "Free", room: "Cabin 305" }
-                    ],
-                    Wednesday: [
-                        { time: "09:00-10:00", subject: "Free", room: "Cabin 305" },
-                        { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
-                        { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
-                        { time: "14:00-15:00", subject: "Programming Lab", room: "Lab 201" }
-                    ],
-                    Thursday: [
-                        { time: "09:00-10:00", subject: "Algorithms", room: "Room 102" },
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
-                        { time: "11:00-12:00", subject: "Data Structures", room: "Room 101" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
-                    ],
-                    Friday: [
-                        { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
-                        { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
-                        { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
-                    ]
-                }
-            }
-        ];
+        // ------------------ Admin settings & persistence ------------------
+        const ADMIN_USERNAME = 'admin';
+        const ADMIN_PASSWORD = 'admin123';
+        let isAdminLoggedIn = false;
 
-        /* ---------- Time helpers (single source of now) ---------- */
+        // Try to load persisted data & admin state
+        const persisted = localStorage.getItem('facultyData_v1');
+        if (persisted) {
+            try {
+                const parsed = JSON.parse(persisted);
+                if (Array.isArray(parsed)) facultyData = parsed;
+            } catch (e) {
+                // ignore parse errors, will use built-in sample
+            }
+        }
+        const adminState = localStorage.getItem('faculty_admin_logged_in');
+        if (adminState === 'true') {
+            isAdminLoggedIn = true;
+        }
+
+        // ------------------ Faculty data (sample) ------------------
+        // If facultyData not defined by persistence, set sample dataset
+       
+
+        // If persistence didn't supply data, use the embedded sample set (same as before)
+    
+            facultyData = [
+                {
+                    name: "Dr. Vikram Karwal",
+                    building: "ABB1",
+                    cabin: "201",
+                    floor: "2",
+                    department: "Electronics and Communication Engineering",
+                    email: "vikram.karwal@jiit.ac.in",
+                    phone: "9717652233",
+                    officeHours: "Mon-Fri 10AM-5PM",
+                    // holiday: false,
+                    timetable: { /* same timetable objects as earlier omitted for brevity */ 
+                        Monday: [
+                            { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
+                            { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
+                            { time: "12:00-13:00", subject: "Free", room: "Cabin 201" },
+                            { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                        ],
+                        Tuesday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
+                            { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                            { time: "14:00-15:00", subject: "Signal Processing", room: "Room 305" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                        ],
+                        Wednesday: [
+                            { time: "09:00-10:00", subject: "Digital Electronics", room: "Room 301" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 201" },
+                            { time: "11:00-12:00", subject: "Signal Processing", room: "Room 305" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 201" }
+                        ],
+                        Thursday: [
+                            { time: "10:00-11:00", subject: "Digital Electronics", room: "Room 301" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                            { time: "14:00-15:00", subject: "Lab Session", room: "Lab 101" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 201" }
+                        ],
+                        Friday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 201" },
+                            { time: "10:00-11:00", subject: "Signal Processing", room: "Room 305" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 201" },
+                            { time: "14:00-15:00", subject: "Faculty Meeting", room: "Conference Room" }
+                        ]
+                    }
+                },
+                {
+                    name: "Prof. Jasmine Saini",
+                    building: "ABB2",
+                    cabin: "301",
+                    floor: "3",
+                    department: "Electronics and Communication Engineering",
+                    email: "jasmine.saini@jiit.ac.in",
+                    phone: "9871005331",
+                    officeHours: "Tue-Thu 2PM-6PM",
+                    timetable: {
+                        Monday: [
+                            { time: "09:00-10:00", subject: "Communication Systems", room: "Room 201" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                            { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 301" },
+                            { time: "15:00-16:00", subject: "Lab Session", room: "Lab 102" }
+                        ],
+                        Tuesday: [
+                            { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
+                            { time: "14:00-15:00", subject: "Microwave Engineering", room: "Room 203" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 301" }
+                        ],
+                        Wednesday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 301" },
+                            { time: "10:00-11:00", subject: "Communication Systems", room: "Room 201" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 301" },
+                            { time: "14:00-15:00", subject: "Lab Session", room: "Lab 102" }
+                        ],
+                        Thursday: [
+                            { time: "09:00-10:00", subject: "Microwave Engineering", room: "Room 203" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                            { time: "11:00-12:00", subject: "Communication Systems", room: "Room 201" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
+                        ],
+                        Friday: [
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 301" },
+                            { time: "11:00-12:00", subject: "Microwave Engineering", room: "Room 203" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 301" }
+                        ]
+                    }
+                },
+                {
+                    name: "Dr. Alka Tripathi",
+                    building: "ABB1",
+                    cabin: "205",
+                    floor: "2",
+                    department: "Mathematics",
+                    email: "alka.choubey@jiit.ac.in",
+                    phone: "9876543210",
+                    officeHours: "Mon-Wed-Fri 11AM-4PM",
+                    timetable: {
+                        Monday: [
+                            { time: "09:00-10:00", subject: "Calculus", room: "Room 401" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                            { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                        ],
+                        Tuesday: [
+                            { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 205" },
+                            { time: "14:00-15:00", subject: "Linear Algebra", room: "Room 402" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 205" }
+                        ],
+                        Wednesday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 205" },
+                            { time: "10:00-11:00", subject: "Calculus", room: "Room 401" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 205" }
+                        ],
+                        Thursday: [
+                            { time: "09:00-10:00", subject: "Linear Algebra", room: "Room 402" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                            { time: "11:00-12:00", subject: "Calculus", room: "Room 401" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                        ],
+                        Friday: [
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 205" },
+                            { time: "11:00-12:00", subject: "Linear Algebra", room: "Room 402" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 205" }
+                        ]
+                    }
+                },
+                {
+                    name: "Prof. Amit Srivastava",
+                    building: "ABB3",
+                    cabin: "110",
+                    floor: "1",
+                    department: "Mathematics",
+                    email: "amit.srivastava@jiit.ac.in",
+                    phone: "9876543216",
+                    officeHours: "Mon-Fri 9AM-3PM",
+                    timetable: {
+                        Monday: [
+                            { time: "09:00-10:00", subject: "Probability", room: "Room 501" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                            { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                        ],
+                        Tuesday: [
+                            { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 110" },
+                            { time: "14:00-15:00", subject: "Statistics", room: "Room 502" }
+                        ],
+                        Wednesday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 110" },
+                            { time: "10:00-11:00", subject: "Probability", room: "Room 501" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                        ],
+                        Thursday: [
+                            { time: "09:00-10:00", subject: "Statistics", room: "Room 502" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                            { time: "11:00-12:00", subject: "Probability", room: "Room 501" }
+                        ],
+                        Friday: [
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 110" },
+                            { time: "11:00-12:00", subject: "Statistics", room: "Room 502" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 110" }
+                        ]
+                    }
+                },
+                {
+                    name: "Dr. Gaurav Verma",
+                    building: "ABB2",
+                    cabin: "305",
+                    floor: "3",
+                    department: "Computer Science",
+                    email: "gaurav.verma@jiit.ac.in",
+                    phone: "9811506739",
+                    officeHours: "Daily 10AM-6PM",
+                    timetable: {
+                        Monday: [
+                            { time: "09:00-10:00", subject: "Data Structures", room: "Room 101" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                            { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 305" },
+                            { time: "15:00-16:00", subject: "Programming Lab", room: "Lab 201" }
+                        ],
+                        Tuesday: [
+                            { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
+                            { time: "14:00-15:00", subject: "Algorithms", room: "Room 102" },
+                            { time: "15:00-16:00", subject: "Free", room: "Cabin 305" }
+                        ],
+                        Wednesday: [
+                            { time: "09:00-10:00", subject: "Free", room: "Cabin 305" },
+                            { time: "10:00-11:00", subject: "Data Structures", room: "Room 101" },
+                            { time: "11:00-12:00", subject: "Free", room: "Cabin 305" },
+                            { time: "14:00-15:00", subject: "Programming Lab", room: "Lab 201" }
+                        ],
+                        Thursday: [
+                            { time: "09:00-10:00", subject: "Algorithms", room: "Room 102" },
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                            { time: "11:00-12:00", subject: "Data Structures", room: "Room 101" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
+                        ],
+                        Friday: [
+                            { time: "10:00-11:00", subject: "Free", room: "Cabin 305" },
+                            { time: "11:00-12:00", subject: "Algorithms", room: "Room 102" },
+                            { time: "14:00-15:00", subject: "Free", room: "Cabin 305" }
+                        ]
+                    }
+                }
+            ];
+        
+
+        // ------------------ Time helpers ------------------
         function getNow() { return new Date(); }
         function getDayNameFromDate(d) {
             const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -421,8 +512,18 @@
             return curMin >= startMin && curMin < endMin;
         }
 
-        /* ---------- Compute faculty status at a given 'now' ---------- */
+        // ------------------ Core status (now includes holiday check) ------------------
         function getFacultyStatusAt(faculty, now) {
+            // Manual holiday flag takes precedence
+            if (faculty.holiday) {
+                return {
+                    status: 'holiday',
+                    message: 'On Leave',
+                    location: faculty.cabin ? `${faculty.building} - Cabin ${faculty.cabin}` : 'N/A',
+                    nextAvailable: 'Not available (On Leave)'
+                };
+            }
+
             const day = getDayNameFromDate(now);
             if (!faculty.timetable || !faculty.timetable[day] || faculty.timetable[day].length === 0) {
                 return {
@@ -457,7 +558,7 @@
             if (!currentSlot) {
                 return {
                     status: 'away',
-                    message: 'Currently not in cabin',
+                    message: 'Currently not on campus',
                     location: faculty.cabin ? `${faculty.building} - Cabin ${faculty.cabin}` : 'Away',
                     nextAvailable: nextFreeSlot ? `Next available: ${nextFreeSlot.time}` : 'Check schedule for availability'
                 };
@@ -482,33 +583,45 @@
             }
         }
 
-        /* ---------- DOM elements ---------- */
+        // ------------------ DOM elements ------------------
         const searchBar = document.getElementById('searchBar');
         const resultsContainer = document.getElementById('results');
         const totalCountEl = document.getElementById('totalCount');
         const availableCountEl = document.getElementById('availableCount');
         const teachingCountEl = document.getElementById('teachingCount');
+        const holidayCountEl = document.getElementById('holidayCount');
         const currentTimeEl = document.getElementById('currentTime');
+
         const buildingFilter = document.getElementById('buildingFilter');
         const departmentFilter = document.getElementById('departmentFilter');
         const floorFilter = document.getElementById('floorFilter');
+
         const exportBtn = document.getElementById('exportBtn');
         const clearBtn = document.getElementById('clearBtn');
+
         const mapBuildingFilter = document.getElementById('mapBuildingFilter');
         const mapFloorFilter = document.getElementById('mapFloorFilter');
         const floorMapDiv = document.getElementById('floorMap');
+
+        const adminBtn = document.getElementById('adminBtn');
+        const adminModal = document.getElementById('adminModal');
+        const adminUser = document.getElementById('adminUser');
+        const adminPass = document.getElementById('adminPass');
+        const adminLoginBtn = document.getElementById('adminLoginBtn');
+        const uploadSection = document.getElementById('uploadSection');
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const chooseFileBtn = document.getElementById('chooseFileBtn');
+        const downloadTemplateBtn = document.getElementById('downloadTemplateBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
         const directionsModal = document.getElementById('directionsModal');
         const directionsContent = document.getElementById('directionsContent');
 
-        let selectedFaculty = null;
+        // ------------------ Utilities ------------------
+        function debounce(fn, wait=180) { let t; return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), wait); }; }
 
-        /* ---------- Utility: debounce ---------- */
-        function debounce(fn, wait=180) {
-            let t;
-            return (...args) => { clearTimeout(t); t = setTimeout(()=>fn(...args), wait); };
-        }
-
-        /* ---------- Filters / search logic ---------- */
+        // ------------------ Filters / search logic ------------------
         function updateFilters() {
             const buildings = [...new Set(facultyData.map(f => f.building).filter(Boolean))].sort();
             const departments = [...new Set(facultyData.map(f => f.department).filter(Boolean))].sort();
@@ -549,7 +662,7 @@
             });
         }
 
-        /* ---------- Rendering faculty cards ---------- */
+        // ------------------ Rendering faculty cards ------------------
         function displayFaculty(list, now = getNow()) {
             resultsContainer.innerHTML = '';
             if (!list || list.length === 0) {
@@ -567,8 +680,8 @@
                 if (selectedFaculty && selectedFaculty.email === faculty.email) card.classList.add('highlighted');
                 card.setAttribute('role','listitem');
 
-                const statusClass = status.status === 'available' ? 'available' : (status.status === 'teaching' ? 'teaching' : 'break');
-                const statusIcon = status.status === 'available' ? '✅' : (status.status === 'teaching' ? '📚' : '⏰');
+                const statusClass = status.status === 'available' ? 'available' : (status.status === 'teaching' ? 'teaching' : (status.status === 'holiday' ? 'holiday' : 'break'));
+                const statusIcon = status.status === 'available' ? '✅' : (status.status === 'teaching' ? '📚' : (status.status === 'holiday' ? '🏖️' : '⏰'));
 
                 // timetable preview
                 let timetableHTML = '';
@@ -578,8 +691,14 @@
                         `</div>`;
                 }
 
+                // show holiday pill for quick visual
+                const holidayPill = faculty.holiday ? `<span class="holiday-pill" title="Marked On Leave">On Leave</span>` : '';
+
                 card.innerHTML = `
-                    <div class="faculty-name">${faculty.name}</div>
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <div class="faculty-name">${faculty.name}</div>
+                        ${holidayPill}
+                    </div>
                     <div class="faculty-info"><strong>Email:</strong><a href="mailto:${faculty.email}" style="color:#667eea;text-decoration:none">${faculty.email}</a></div>
                     ${faculty.phone ? `<div class="faculty-info"><strong>Phone:</strong><a href="tel:+91${faculty.phone}" style="color:#667eea;text-decoration:none">+91 ${faculty.phone}</a></div>` : ''}
                     <div class="smart-status ${statusClass}"><span style="font-size:1.1em">${statusIcon}</span><div><strong style="display:block">${status.message}</strong><div style="font-size:.9em;margin-top:4px">📍 ${status.location}</div></div></div>
@@ -593,6 +712,7 @@
                         <button class="btn-directions" data-index="${idx}" aria-label="Directions for ${faculty.name}">🧭 Directions</button>
                         <button class="btn-appointment" data-index="${idx}" aria-label="Request appointment with ${faculty.name}">📅 Appointment</button>
                         <button class="btn view-schedule" data-index="${idx}" style="background:#5568d3;color:white;border-radius:8px;padding:8px 10px;border:none;cursor:pointer">📋 Full Week</button>
+                        ${isAdminLoggedIn ? `<button class="btn btn-secondary toggle-holiday" data-email="${faculty.email}" data-holiday="${faculty.holiday ? '1' : '0'}" style="min-width:120px">${faculty.holiday ? 'Unmark Holiday' : 'Mark On Holiday'}</button>` : ''}
                     </div>
                 `;
 
@@ -607,27 +727,25 @@
             });
         }
 
-        /* ---------- Highlight / select faculty ---------- */
+        // ------------------ Highlight / select faculty ------------------
+        let selectedFaculty = null;
         function highlightFacultyByIndex(idx) {
-            const f = getFilteredFacultyList(searchBar.value)[idx];
-            // idx refers to the filtered list; to find index in the main array, match email:
+            const filtered = getFilteredFacultyList(searchBar.value);
+            const f = filtered[idx];
             if (!f) return;
             selectedFaculty = facultyData.find(x => x.email === f.email) || f;
-            // set map selectors and update
             if (selectedFaculty.building) mapBuildingFilter.value = selectedFaculty.building;
             if (selectedFaculty.floor) mapFloorFilter.value = selectedFaculty.floor;
             updateMap();
-            // re-display using current filter set (so highlight shows)
             const now = getNow();
             displayFaculty(getFilteredFacultyList(searchBar.value), now);
         }
 
-        /* ---------- View full schedule modal (by index from filtered list) ---------- */
+        // ------------------ Full schedule modal ------------------
         function showFullScheduleByIndexFromFiltered(idx) {
             const filtered = getFilteredFacultyList(searchBar.value);
             const faculty = filtered[idx];
             if (!faculty) return;
-            // Build modal content
             const days = ['Monday','Tuesday','Wednesday','Thursday','Friday'];
             let scheduleHTML = `<div style="max-height:60vh;overflow:auto"><h3 style="color:#667eea;margin-bottom:10px">${faculty.name}'s Weekly Schedule</h3>`;
             days.forEach(day=>{
@@ -641,7 +759,6 @@
             openModalWithHTML(scheduleHTML, 'Weekly Schedule');
         }
 
-        /* ---------- Modal helpers ---------- */
         function openModalWithHTML(innerHTML, title='') {
             const modal = document.createElement('div');
             modal.className = 'modal active';
@@ -656,7 +773,7 @@
         }
         function closeModalByElement(button) { button.closest('.modal')?.remove(); }
 
-        /* ---------- Directions (open directions modal) ---------- */
+        // ------------------ Directions ------------------
         function showDirectionsByIndexFromFiltered(idx) {
             const filtered = getFilteredFacultyList(searchBar.value);
             const faculty = filtered[idx];
@@ -666,7 +783,6 @@
             const floor = faculty.floor || 'floor';
             const cabin = faculty.cabin || 'cabin';
 
-            // Simple heuristic directions — can be extended to integrate actual map data
             const cabinNumDigits = cabin ? cabin.replace(/\D/g,'') : '';
             const lateral = (cabinNumDigits && parseInt(cabinNumDigits,10) <= 110) ? 'left' : 'right';
             const steps = [
@@ -686,7 +802,7 @@
             directionsModal.setAttribute('aria-hidden','true');
         }
 
-        /* ---------- Appointment (mailto) ---------- */
+        // ------------------ Appointment (mailto) ------------------
         function requestAppointmentByIndexFromFiltered(idx) {
             const filtered = getFilteredFacultyList(searchBar.value);
             const faculty = filtered[idx];
@@ -697,7 +813,7 @@
             window.location.href = `mailto:${faculty.email}?subject=${subject}&body=${body}`;
         }
 
-        /* ---------- Map rendering: show cabins present on selected building/floor ---------- */
+        // ------------------ Update map ------------------
         function updateMap() {
             const building = mapBuildingFilter.value;
             const floor = mapFloorFilter.value;
@@ -706,16 +822,12 @@
                 return;
             }
 
-            // Gather cabins on this building+floor
             const cabins = facultyData.filter(f => f.building === building && String(f.floor) === String(floor));
-            // Collect cabin codes and display them
             const cabinCodes = [...new Set(cabins.map(c => c.cabin).filter(Boolean))].sort();
 
-            // If there are no known cabins for that floor, show a simple grid of placeholders
             let html = `<div class="floor-title">${building} - Floor ${floor}</div>`;
             html += '<div class="cabin-grid">';
             if (cabinCodes.length === 0) {
-                // heuristic: show numbered cabins 01..12 prefixed by floor
                 for (let i=1;i<=12;i++){
                     const num = String(i).padStart(2,'0');
                     const cabinId = `${floor}${num}`;
@@ -726,7 +838,8 @@
                     const faculty = cabins.find(c=>c.cabin === code);
                     const isHighlighted = selectedFaculty && selectedFaculty.cabin === code && selectedFaculty.building === building;
                     if (faculty) {
-                        html += `<div class="cabin occupied ${isHighlighted? 'highlighted' : ''}" data-email="${faculty.email}">
+                        const cls = isHighlighted ? 'occupied highlighted' : 'occupied';
+                        html += `<div class="cabin ${cls}" data-email="${faculty.email}">
                                     <div class="cabin-number">${code}</div>
                                     <div class="cabin-faculty">${faculty.name.split(' ').slice(-1)[0]}</div>
                                     <div class="cabin-dept" style="font-size:.8em;color:#999">${(faculty.department||'').slice(0,18)}</div>
@@ -739,14 +852,12 @@
             html += '</div>';
             floorMapDiv.innerHTML = html;
 
-            // Attach click handlers to cabins (delegated here)
             floorMapDiv.querySelectorAll('.cabin.occupied').forEach(el=>{
                 el.addEventListener('click', () => {
                     const email = el.getAttribute('data-email');
                     const fac = facultyData.find(f=>f.email === email);
                     if (fac) {
                         selectedFaculty = fac;
-                        // sync filters & display
                         buildingFilter.value = fac.building || 'all';
                         departmentFilter.value = fac.department || 'all';
                         floorFilter.value = fac.floor || 'all';
@@ -754,10 +865,9 @@
                     }
                 });
             });
-            // Vacant cabins click does nothing for now
         }
 
-        /* ---------- Export visible to Excel ---------- */
+        // ------------------ Export visible to Excel (includes Holiday) ------------------
         function exportVisibleToExcel() {
             const list = getFilteredFacultyList(searchBar.value);
             if (!list.length) return alert('No rows to export.');
@@ -769,7 +879,8 @@
                 Building: f.building || '',
                 Floor: f.floor || '',
                 Cabin: f.cabin || '',
-                OfficeHours: f.officeHours || ''
+                OfficeHours: f.officeHours || '',
+                Holiday: f.holiday ? 'Yes' : 'No'
             }));
             const ws = XLSX.utils.json_to_sheet(rows);
             const wb = XLSX.utils.book_new();
@@ -777,9 +888,8 @@
             XLSX.writeFile(wb, `faculty_export_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        /* ---------- UI message helper ---------- */
+        // ------------------ UI message helper ------------------
         function showMessage(text, type='success') {
-            // lightweight in-page toast (reusing currentTimeEl area briefly)
             const el = document.createElement('div');
             el.textContent = text;
             el.style.position = 'fixed';
@@ -794,7 +904,7 @@
             setTimeout(()=>el.remove(), 4000);
         }
 
-        /* ---------- Event delegation for result buttons ---------- */
+        // ------------------ Event delegation for result buttons ------------------
         resultsContainer.addEventListener('click', (e) => {
             const viewBtn = e.target.closest('.view-schedule');
             if (viewBtn) {
@@ -814,9 +924,26 @@
                 requestAppointmentByIndexFromFiltered(idx);
                 return;
             }
+            const holidayBtn = e.target.closest('.toggle-holiday');
+            if (holidayBtn) {
+                const email = holidayBtn.dataset.email;
+                toggleHolidayByEmail(email);
+                return;
+            }
         });
 
-        /* ---------- Search / filter handlers ---------- */
+        // ------------------ Toggle holiday (admin action) ------------------
+        function toggleHolidayByEmail(email) {
+            if (!isAdminLoggedIn) { showMessage('Admin required to mark holiday', 'error'); return; }
+            const idx = facultyData.findIndex(f => f.email === email);
+            if (idx === -1) return showMessage('Faculty not found', 'error');
+            facultyData[idx].holiday = !facultyData[idx].holiday;
+            persistData();
+            showMessage(`${facultyData[idx].name} is now ${facultyData[idx].holiday ? 'marked On Leave' : 'marked Available'}`, 'success');
+            refreshAll();
+        }
+
+        // ------------------ Search / filter handlers ------------------
         const onFilterChangeDebounced = debounce(() => {
             const now = getNow();
             const filtered = getFilteredFacultyList(searchBar.value);
@@ -829,7 +956,6 @@
         departmentFilter.addEventListener('change', onFilterChangeDebounced);
         floorFilter.addEventListener('change', onFilterChangeDebounced);
 
-        // map selectors
         mapBuildingFilter.addEventListener('change', updateMap);
         mapFloorFilter.addEventListener('change', updateMap);
 
@@ -846,14 +972,14 @@
 
         exportBtn.addEventListener('click', exportVisibleToExcel);
 
-        // directions modal close on background click or Escape
         directionsModal.addEventListener('click', (e) => { if (e.target === directionsModal) closeDirectionsModal(); });
         window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDirectionsModal(); });
 
-        /* ---------- Stats update ---------- */
+        // ------------------ Stats update ------------------
         function updateStats(now = getNow()) {
-            let available = 0, teaching = 0;
+            let available = 0, teaching = 0, holiday = 0;
             for (const f of facultyData) {
+                if (f.holiday) { holiday++; continue; }
                 const s = getFacultyStatusAt(f, now);
                 if (s.status === 'available') available++;
                 if (s.status === 'teaching') teaching++;
@@ -861,9 +987,10 @@
             totalCountEl.textContent = facultyData.length;
             availableCountEl.textContent = available;
             teachingCountEl.textContent = teaching;
+            holidayCountEl.textContent = holiday;
         }
 
-        /* ---------- Current time tick and refresh ---------- */
+        // ------------------ Current time tick and refresh ------------------
         function tick() {
             const now = getNow();
             currentTimeEl.textContent = formatNowForDisplay(now);
@@ -878,18 +1005,171 @@
             tick();
         }
 
-        /* ---------- Initialization ---------- */
+        // ------------------ Persistence helpers ------------------
+        function persistData() {
+            try {
+                localStorage.setItem('facultyData_v1', JSON.stringify(facultyData));
+            } catch (e) {
+                console.warn('Could not persist data to localStorage', e);
+            }
+        }
+
+        function setAdminState(loggedIn) {
+            isAdminLoggedIn = !!loggedIn;
+            localStorage.setItem('faculty_admin_logged_in', isAdminLoggedIn ? 'true' : 'false');
+            if (isAdminLoggedIn) {
+                uploadSection.classList.add('visible');
+                uploadSection.setAttribute('aria-hidden','false');
+                adminBtn.classList.add('logged-in');
+                adminBtn.textContent = '✓ Admin';
+            } else {
+                uploadSection.classList.remove('visible');
+                uploadSection.setAttribute('aria-hidden','true');
+                adminBtn.classList.remove('logged-in');
+                adminBtn.textContent = '🔐 Admin';
+            }
+            // re-render to show/hide admin buttons on cards
+            refreshAll();
+        }
+
+        // ------------------ Admin modal handlers ------------------
+        function openAdminModal() {
+            adminModal.classList.add('active');
+            adminModal.setAttribute('aria-hidden','false');
+            adminUser.focus();
+        }
+        function closeAdminModal() {
+            adminModal.classList.remove('active');
+            adminModal.setAttribute('aria-hidden','true');
+            adminUser.value = ''; adminPass.value = '';
+        }
+
+        adminBtn.addEventListener('click', () => {
+            if (isAdminLoggedIn) {
+                // toggle off or open admin panel? here we open admin controls
+                if (uploadSection.classList.contains('visible')) {
+                    // already visible; allow logout button to handle
+                    showMessage('Admin mode active', 'success');
+                } else {
+                    setAdminState(true);
+                }
+            } else {
+                openAdminModal();
+            }
+        });
+
+        adminLoginBtn.addEventListener('click', () => {
+            const u = adminUser.value.trim();
+            const p = adminPass.value;
+            if (u === ADMIN_USERNAME && p === ADMIN_PASSWORD) {
+                setAdminState(true);
+                closeAdminModal();
+                showMessage('Logged in as Admin', 'success');
+            } else {
+                showMessage('Invalid admin credentials', 'error');
+            }
+        });
+
+        // Enter triggers login
+        adminPass.addEventListener('keypress', (e) => { if (e.key === 'Enter') adminLoginBtn.click(); });
+
+        logoutBtn.addEventListener('click', () => { setAdminState(false); showMessage('Admin logged out', 'success'); });
+
+        // ------------------ Upload area handlers (drag & drop + file input) ------------------
+        uploadArea.addEventListener('click', () => fileInput.click());
+        chooseFileBtn.addEventListener('click', () => fileInput.click());
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files && e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        fileInput.addEventListener('change', (e) => { const file = e.target.files && e.target.files[0]; if (file) handleFile(file); });
+
+        downloadTemplateBtn.addEventListener('click', () => {
+            const template = [
+                { Name: 'Dr. John Doe', Building: 'ABB1', Floor: '2', Cabin: '201', Department: 'Computer Science', Email: 'john.doe@jiit.ac.in', Phone: '9876543210', OfficeHours: 'Mon-Fri 10AM-5PM', Holiday: 'No' },
+                { Name: 'Prof. Jane Smith', Building: 'ABB2', Floor: '3', Cabin: '305', Department: 'Electronics', Email: 'jane.smith@jiit.ac.in', Phone: '9876543211', OfficeHours: 'Tue-Thu 2PM-6PM', Holiday: 'No' }
+            ];
+            const ws = XLSX.utils.json_to_sheet(template);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Template');
+            XLSX.writeFile(wb, 'faculty_template.xlsx');
+        });
+
+        function handleFile(file) {
+            if (!isAdminLoggedIn) { showMessage('You must be an admin to upload', 'error'); return; }
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                try {
+                    const data = new Uint8Array(ev.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '' });
+                    processExcelData(jsonData);
+                } catch (err) {
+                    showMessage('Error reading file. Ensure it is a valid Excel file.', 'error');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processExcelData(rows) {
+            if (!rows || rows.length === 0) { showMessage('Excel file is empty', 'error'); return; }
+            const cleaned = rows.map(r => ({
+                name: r.Name || r.name || '',
+                building: r.Building || r.building || '',
+                cabin: r.Cabin || r.cabin || '',
+                floor: r.Floor || r.floor || '',
+                department: r.Department || r.department || '',
+                email: (r.Email || r.email || '').toString().trim(),
+                phone: (r.Phone || r.phone || '').toString(),
+                officeHours: r.OfficeHours || r.officeHours || '',
+                holiday: String(r.Holiday || r.holiday || '').toLowerCase() === 'yes' || String(r.Holiday || r.holiday || '').toLowerCase() === 'true'
+            })).filter(f => f.name && f.email);
+
+            if (cleaned.length === 0) { showMessage('No valid rows in the uploaded file', 'error'); return; }
+
+            // Replace entire dataset with uploaded one (admin action)
+            facultyData = cleaned.map(f => {
+                // preserve any existing timetable if present by matching email (optional)
+                const existing = (Array.isArray(window.facultyData) ? window.facultyData : []).find(x => x.email === f.email);
+                return {
+                    ...existing, // keep existing timetable if any
+                    ...f
+                };
+            });
+
+            persistData();
+            updateFilters();
+            refreshAll();
+            showMessage(`Loaded ${facultyData.length} faculty rows`, 'success');
+        }
+
+        // ------------------ Toggle holiday and persist are implemented above ------------------
+
+        // ------------------ Initialization ------------------
         updateFilters();
+        setAdminState(isAdminLoggedIn);
         refreshAll();
-        // update every 30 seconds for live status & map
+
+        // periodic refresh
         setInterval(refreshAll, 30000);
-        // update current time every second
         setInterval(tick, 1000);
 
-        /* ---------- Small accessibility helpers (optional) ---------- */
-        // If user clicks exported cells or other UI, you might want to focus result area
-        // (left intentionally minimal)
-
+        // Accessibility small helpers
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                adminModal.classList.remove('active');
+                directionsModal.classList.remove('active');
+            }
+        });
     </script>
 </body>
 </html>
